@@ -1,1 +1,6 @@
 /README_UZB.md
+/target/*
+
+# Added by cargo
+
+/target
