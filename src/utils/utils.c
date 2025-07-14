@@ -12,11 +12,11 @@ int is_zero(const s21_decimal* num) {
 }
 
 // warning num null pointer. 
-int is_big_zero(s21_big_decimal num) {
+int is_big_zero(const s21_big_decimal* big) {
   int is_num_zero = 0;
-  if (num.bits[0] == 0 && num.bits[1] == 0 && num.bits[2] == 0 &&
-      num.bits[3] == 0 && num.bits[4] == 0 && num.bits[5] == 0 &&
-      num.bits[6] == 0) {
+  if (big->bits[0] == 0 && big->bits[1] == 0 && big->bits[2] == 0 &&
+      big->bits[3] == 0 && big->bits[4] == 0 && big->bits[5] == 0 &&
+      big->bits[6] == 0) {
     is_num_zero = 1;
   }
 
