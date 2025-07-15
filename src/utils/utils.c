@@ -66,7 +66,7 @@ int get_big_scale(const s21_big_decimal* big) {
 int get_bit(const s21_decimal* num, unsigned int pos) {
   if (95 < pos) pos = 95; // ошибка: вне диапазона
 
-  unsigned int part = dec_begin - pos / 32;
+  unsigned int part = DEC_BEGIN - pos / 32;
   unsigned int local_pos = pos % 32;
 
   return (num->bits[part] >> local_pos) & 1;
@@ -76,7 +76,7 @@ int get_bit(const s21_decimal* num, unsigned int pos) {
 int get_big_bit(const s21_big_decimal *big, unsigned int pos) {
   if (pos > 223) pos = 223; // Защита от неверных входных данных
 
-  unsigned int part = big_begin - pos / 32;       // Определяем, в каком bits[] находится бит
+  unsigned int part = BIG_BEGIN - pos / 32;       // Определяем, в каком bits[] находится бит
   unsigned int local_pos = pos % 32;    // Позиция внутри слова
 
   return (big->bits[part] >> local_pos) & 1;
@@ -87,7 +87,7 @@ int set_sign(s21_decimal *num, unsigned int sign_value) {
   int is_err = 0;
   if (1 < sign_value || !num || !sign_value) is_err = 1;
   else {
-    num->bits[dec_metainfo] = (num->bits[dec_metainfo] & ~0x80000000) | (sign_value << 31);
+    num->bits[DEC_METAINFO] = (num->bits[DEC_METAINFO] & ~0x80000000) | (sign_value << 31);
   }
   return is_err;
 }
@@ -96,7 +96,7 @@ int set_big_sign(s21_big_decimal *big, const unsigned int sign_value) {
   int is_err = 0;
   if (1 < sign_value || !big || !sign_value) is_err = 1;
   else {
-    big->bits[7] = (big->bits[7] & ~0x80000000) | (sign_value << 31);
+    big->bits[BIG_METAINFO] = (big->bits[BIG_METAINFO] & ~0x80000000) | (sign_value << 31);
   }
   return is_err;
 }
@@ -106,7 +106,7 @@ int set_scale(s21_decimal *num, const unsigned int scale_value) {
   int is_err = 0;
   if (28 < scale_value || !num || !scale_value) is_err = 1;
   else {
-    num->bits[dec_metainfo] = (num->bits[dec_metainfo] & ~0x00FF0000) | (scale_value << 16);
+    num->bits[DEC_METAINFO] = (num->bits[DEC_METAINFO] & ~0x00FF0000) | (scale_value << 16);
   }
   return is_err;
 }
@@ -115,7 +115,7 @@ int set_big_scale(s21_big_decimal *big, const unsigned int scale_value) {
   int is_err = 0;
   if (28 < scale_value || !big || !scale_value) is_err = 1;
   else {
-    big->bits[7] = (big->bits[7] & ~0x00FF0000) | (scale_value << 16);
+    big->bits[BIG_METAINFO] = (big->bits[BIG_METAINFO] & ~0x00FF0000) | (scale_value << 16);
   }
   return is_err;
 }
@@ -125,7 +125,7 @@ int set_bit(s21_decimal *num, const unsigned int val, const unsigned int pos) {
   int is_err = 0;
   if (pos > 95 || !num || !val || !pos) is_err = 1;
   else {
-    unsigned int part = dec_begin - pos / 32;
+    unsigned int part = DEC_BEGIN - pos / 32;
     unsigned int local_pos = pos % 32;
 
     if (val) {
@@ -142,7 +142,7 @@ int set_big_bit(s21_big_decimal *num, const unsigned int val, const unsigned int
   int is_err = 0;
   if (223 < pos || !num || !val || !pos) is_err = 1;
   else {
-    unsigned int part = big_begin - pos / 32;
+    unsigned int part = BIG_BEGIN - pos / 32;
     unsigned int local_pos = pos % 32;
 
     if (val) {
@@ -156,8 +156,7 @@ int set_big_bit(s21_big_decimal *num, const unsigned int val, const unsigned int
 
 s21_big_decimal shift_left(s21_big_decimal big, int shift_value) {
   unsigned memory = 0;
-  for (int i = 0; i < (int)(sizeof(s21_big_decimal) / sizeof(unsigned) - 1);
-       i++) {
+  for (int i = BIG_BEGIN; i > -1; --i) { // (int)(sizeof(s21_big_decimal) / sizeof(unsigned) - 1
     unsigned temp = big.bits[i];
     big.bits[i] <<= shift_value;
     big.bits[i] |= memory;
@@ -171,14 +170,14 @@ s21_big_decimal shift_left(s21_big_decimal big, int shift_value) {
 void convert_to_big_decimal(const s21_decimal *num, s21_big_decimal *big) {
   *big = (s21_big_decimal){0};
 
-  big->bits[big_metainfo] = num->bits[dec_metainfo]; //- знак и степень
+  big->bits[BIG_METAINFO] = num->bits[DEC_METAINFO]; //- знак и степень
   
-  big->bits[big_begin - 0] = num->bits[dec_begin - 0];
-  big->bits[big_begin - 1] = num->bits[dec_begin - 1];
-  big->bits[big_begin - 2] = num->bits[dec_begin - 2];
+  big->bits[BIG_BEGIN - 0] = num->bits[DEC_BEGIN - 0];
+  big->bits[BIG_BEGIN - 1] = num->bits[DEC_BEGIN - 1];
+  big->bits[BIG_BEGIN - 2] = num->bits[DEC_BEGIN - 2];
 }
 
-void с_binary(int num) {
+void print_binary(int num) {
   for (int i = 31; i >= 0; i--) {
     printf("%d", (num >> i) & 1);
   }
@@ -186,14 +185,14 @@ void с_binary(int num) {
 }
 
 void print_decimal(s21_decimal num) {
-  for (int i = 0; i <= dec_begin; i++) {
+  for (int i = 0; i <= DEC_BEGIN; i++) {
     print_binary(num.bits[i]);
   }
   printf("\n");
 }
 
 void print_big_decimal(s21_big_decimal num) {
-  for (int i = 0; i <= big_begin; i++) {
+  for (int i = 0; i <= BIG_BEGIN; i++) {
     print_binary(num.bits[i]);
   }
   printf("\n");

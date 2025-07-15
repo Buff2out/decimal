@@ -1,10 +1,10 @@
 #ifndef S21_DECIMAL_H
 #define S21_DECIMAL_H
 
-#define dec_begin 2
-#define big_begin 6
-#define big_metainfo 7
-#define dec_metainfo 3
+#define DEC_BEGIN 2
+#define BIG_BEGIN 6
+#define BIG_METAINFO 7
+#define DEC_METAINFO 3
 
 #include <stdio.h>
 
