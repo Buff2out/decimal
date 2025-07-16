@@ -3,9 +3,9 @@
 // Проверяем ноль ли число
 // warning num null pointer. 
 int is_zero(const s21_decimal* num) {
-  int is_num_zero = 0;
+  int is_num_zero = FALSE;
   if (num->bits[0] == 0 && num->bits[1] == 0 && num->bits[2] == 0) {
-    is_num_zero = 1;
+    is_num_zero = TRUE;
   }
 
   return is_num_zero;
@@ -13,11 +13,11 @@ int is_zero(const s21_decimal* num) {
 
 // warning num null pointer. 
 int is_big_zero(const s21_big_decimal* big) {
-  int is_num_zero = 0;
+  int is_num_zero = FALSE;
   if (big->bits[0] == 0 && big->bits[1] == 0 && big->bits[2] == 0 &&
       big->bits[3] == 0 && big->bits[4] == 0 && big->bits[5] == 0 &&
       big->bits[6] == 0) {
-    is_num_zero = 1;
+    is_num_zero = TRUE;
   }
 
   return is_num_zero;
@@ -64,7 +64,7 @@ int get_big_scale(const s21_big_decimal* big) {
 // Получаем любой бит числа. Валидные pos от 0 до 95. 
 // warning num, pos null pointer. 
 int get_bit(const s21_decimal* num, unsigned int pos) {
-  if (95 < pos) pos = 95; // ошибка: вне диапазона
+  if (DEC_MAX_POS < pos) pos = DEC_MAX_POS; // ошибка: вне диапазона
 
   unsigned int part = DEC_BEGIN - pos / 32;
   unsigned int local_pos = pos % 32;
@@ -74,7 +74,7 @@ int get_bit(const s21_decimal* num, unsigned int pos) {
 
 // warning num, pos null pointer. 
 int get_big_bit(const s21_big_decimal *big, unsigned int pos) {
-  if (pos > 223) pos = 223; // Защита от неверных входных данных
+  if (pos > BIG_MAX_POS) pos = BIG_MAX_POS; // Защита от неверных входных данных
 
   unsigned int part = BIG_BEGIN - pos / 32;       // Определяем, в каком bits[] находится бит
   unsigned int local_pos = pos % 32;    // Позиция внутри слова
@@ -84,7 +84,7 @@ int get_big_bit(const s21_big_decimal *big, unsigned int pos) {
 
 // Ставим знак, либо 1 либо 0.
 int set_sign(s21_decimal *num, unsigned int sign_value) {
-  int is_err = 0;
+  int is_err = FALSE;
   if (1 < sign_value || !num || !sign_value) is_err = 1;
   else {
     num->bits[DEC_METAINFO] = (num->bits[DEC_METAINFO] & ~0x80000000) | (sign_value << 31);
@@ -93,8 +93,8 @@ int set_sign(s21_decimal *num, unsigned int sign_value) {
 }
 
 int set_big_sign(s21_big_decimal *big, const unsigned int sign_value) {
-  int is_err = 0;
-  if (1 < sign_value || !big || !sign_value) is_err = 1;
+  int is_err = FALSE;
+  if (1 < sign_value || !big || !sign_value) is_err = TRUE;
   else {
     big->bits[BIG_METAINFO] = (big->bits[BIG_METAINFO] & ~0x80000000) | (sign_value << 31);
   }
@@ -103,8 +103,8 @@ int set_big_sign(s21_big_decimal *big, const unsigned int sign_value) {
 
 // Ставим степень, от 0 по 28
 int set_scale(s21_decimal *num, const unsigned int scale_value) {
-  int is_err = 0;
-  if (28 < scale_value || !num || !scale_value) is_err = 1;
+  int is_err = FALSE;
+  if (28 < scale_value || !num || !scale_value) is_err = TRUE;
   else {
     num->bits[DEC_METAINFO] = (num->bits[DEC_METAINFO] & ~0x00FF0000) | (scale_value << 16);
   }
@@ -112,8 +112,8 @@ int set_scale(s21_decimal *num, const unsigned int scale_value) {
 }
 
 int set_big_scale(s21_big_decimal *big, const unsigned int scale_value) {
-  int is_err = 0;
-  if (28 < scale_value || !big || !scale_value) is_err = 1;
+  int is_err = FALSE;
+  if (28 < scale_value || !big || !scale_value) is_err = TRUE;
   else {
     big->bits[BIG_METAINFO] = (big->bits[BIG_METAINFO] & ~0x00FF0000) | (scale_value << 16);
   }
@@ -122,8 +122,8 @@ int set_big_scale(s21_big_decimal *big, const unsigned int scale_value) {
 
 // Ставим любой бит числа. Валидные pos от 0 до 95
 int set_bit(s21_decimal *num, const unsigned int val, const unsigned int pos) {
-  int is_err = 0;
-  if (pos > 95 || !num || !val || !pos) is_err = 1;
+  int is_err = FALSE;
+  if (pos > 95 || !num || !val || !pos) is_err = TRUE;
   else {
     unsigned int part = DEC_BEGIN - pos / 32;
     unsigned int local_pos = pos % 32;
@@ -139,8 +139,8 @@ int set_bit(s21_decimal *num, const unsigned int val, const unsigned int pos) {
 
 // Ставим любой бит числа. Валидные pos от 0 до 223
 int set_big_bit(s21_big_decimal *num, const unsigned int val, const unsigned int pos) {
-  int is_err = 0;
-  if (223 < pos || !num || !val || !pos) is_err = 1;
+  int is_err = FALSE;
+  if (BIG_MAX_POS < pos || !num || !val || !pos) is_err = TRUE;
   else {
     unsigned int part = BIG_BEGIN - pos / 32;
     unsigned int local_pos = pos % 32;
@@ -154,8 +154,9 @@ int set_big_bit(s21_big_decimal *num, const unsigned int val, const unsigned int
   return is_err; // Успех
 }
 
-s21_big_decimal shift_left(s21_big_decimal big, int shift_value) {
+s21_big_decimal shift_left(s21_big_decimal big, unsigned shift_value) {
   unsigned memory = 0;
+  if (31 < shift_value) shift_value = 31;
   for (int i = BIG_BEGIN; i > -1; --i) { // (int)(sizeof(s21_big_decimal) / sizeof(unsigned) - 1
     unsigned temp = big.bits[i];
     big.bits[i] <<= shift_value;
@@ -184,54 +185,56 @@ void print_binary(int num) {
   printf("\n");
 }
 
-void print_decimal(s21_decimal num) {
-  for (int i = 0; i <= DEC_BEGIN; i++) {
-    print_binary(num.bits[i]);
+void print_decimal(const s21_decimal* num) {
+  for (int i = BIG_END; i <= DEC_BEGIN; i++) {
+    print_binary(num->bits[i]);
   }
   printf("\n");
 }
 
-void print_big_decimal(s21_big_decimal num) {
-  for (int i = 0; i <= BIG_BEGIN; i++) {
-    print_binary(num.bits[i]);
+void print_big_decimal(const s21_big_decimal* num) {
+  for (int i = BIG_END; i <= BIG_BEGIN; i++) {
+    print_binary(num->bits[i]);
   }
   printf("\n");
 }
 
 void normalize_scales(s21_big_decimal *num1, s21_big_decimal *num2) {
-  if (get_big_scale(num1) > get_big_scale(num2)) {
-    multiply_by_10(num1, num2);
-  } else if (get_big_scale(num1) < get_big_scale(num2)) {
-    multiply_by_10(num2, num1);
+  while (get_big_scale(num1) < get_big_scale(num2)) {
+    multiply_by_10(num1);
+  }
+  while (get_big_scale(num2) < get_big_scale(num1)) {
+    multiply_by_10(num2);
   }
 }
 
-void multiply_by_10(s21_big_decimal *num1, s21_big_decimal *num2) {
-  while (get_big_scale(num1) != get_big_scale(num2)) {
-    s21_big_decimal temp1 = shift_left(*num2, 3);
-    s21_big_decimal temp2 = shift_left(*num2, 1);
-    unsigned long long carry = 0;
-    for (int i = 0; i < 7; i++) {
-      unsigned long long sum =
-          (unsigned long long)temp1.bits[i] + temp2.bits[i] + carry;
-      num2->bits[i] = (unsigned int)(sum & 0xFFFFFFFF);
-      carry = sum >> 32;
-    }
-    set_big_scale(num2, get_big_scale(num2) + 1);
+void multiply_by_10(s21_big_decimal *big) {
+  s21_big_decimal temp1 = shift_left(*big, 3); // умножает на 8 (2^3)
+  s21_big_decimal temp2 = shift_left(*big, 1); // умножает на 2 (2^1)
+  unsigned long long carry = 0;
+
+  for (int i = BIG_BEGIN; i >= DEC_END; i--) {
+    unsigned long long sum = 
+        (unsigned long long)temp1.bits[i] + temp2.bits[i] + carry;
+    big->bits[i] = (unsigned int)(sum & 0xFFFFFFFF);
+    carry = sum >> 32;
   }
+
+  set_big_scale(big, get_big_scale(big) + 1);
 }
+
 
 // для сравнения
 // 1: num1 > num2, 0: num1 == num2, -1: num1 < num2
 int compare_big_decimal(s21_big_decimal num1, s21_big_decimal num2) {
-  int stop = 0;
+  int stop = FALSE;
   int comparison_result = 0;
-  for (int i = 223; i >= 0; i--) {
+  for (int i = BIG_MAX_POS; i >= 0; i--) {
     if (get_big_bit(&num1, i) > get_big_bit(&num2, i) && !stop) {
-      stop = 1;
+      stop = TRUE;
       comparison_result = 1;
     } else if (get_big_bit(&num1, i) < get_big_bit(&num2, i) && !stop) {
-      stop = 1;
+      stop = TRUE;
       comparison_result = -1;
     }
   }
