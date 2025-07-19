@@ -4,13 +4,13 @@ TEST_FLAGS = -lcheck -lm -lpthread
 
 SRC_DIR = src
 UTILS_DIR = $(SRC_DIR)/utils
-TEST_DIR = test
 
 UTILS_SRC = $(UTILS_DIR)/utils.c
 UTILS_OBJ = $(UTILS_SRC:.c=.o)
 
-TEST_SRC = $(TEST_DIR)/test_utils.c
-TEST_EXEC = $(TEST_DIR)/test_utils
+TEST_SRC = test/test.c test/test_utils.c
+TEST_OBJ = $(TEST_SRC:.c=.o)
+TEST_EXEC = test/test
 
 .PHONY: all clean test
 

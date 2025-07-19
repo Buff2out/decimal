@@ -8,6 +8,19 @@ s21_big_decimal from_bits(unsigned b0, unsigned b1, unsigned b2,
     return result;
 }
 
+// Вспомогательная функция для создания decimal из массива
+s21_decimal new_dec_native(unsigned b2, unsigned b1, unsigned b0, unsigned b3) {
+    s21_decimal result = {{b0, b1, b2, b3}};
+    return result;
+}
+
+// Вспомогательная функция для создания big_decimal из массива
+s21_big_decimal new_big_native(unsigned b6, unsigned b5, unsigned b4, unsigned b3, 
+                               unsigned b2, unsigned b1, unsigned b0, unsigned b7) {
+    s21_big_decimal result = {{b0, b1, b2, b3, b4, b5, b6, b7}};
+    return result;
+}
+
 // Вспомогательная функция для создания big_decimal из массива
 s21_big_decimal from_bits_native(unsigned b6, unsigned b5, unsigned b4, 
                                              unsigned b3, unsigned b2, unsigned b1, unsigned b0, unsigned b7) {
@@ -173,14 +186,50 @@ s21_big_decimal shift_left(s21_big_decimal big, unsigned shift_value) {
 }
 
 // warning num, big null pointer. 
+// legacy function
 void convert_to_big_decimal(const s21_decimal *num, s21_big_decimal *big) {
   *big = (s21_big_decimal){0};
 
   big->bits[BIG_METAINFO] = num->bits[DEC_METAINFO]; //- знак и степень
   
-  big->bits[BIG_BEGIN - 0] = num->bits[DEC_BEGIN - 0];
-  big->bits[BIG_BEGIN - 1] = num->bits[DEC_BEGIN - 1];
-  big->bits[BIG_BEGIN - 2] = num->bits[DEC_BEGIN - 2];
+  big->bits[0] = num->bits[0];
+  big->bits[1] = num->bits[1];
+  big->bits[2] = num->bits[2];
+}
+
+int to_big(const s21_decimal *num, s21_big_decimal *big) {
+  const int ok = 0;
+  const int null_big = 1;
+  int flag = ok;
+  *big = (s21_big_decimal){0};
+  if (!num) flag = null_big;
+  else {
+    big->bits[BIG_METAINFO] = num->bits[DEC_METAINFO]; //- знак и степень
+    
+    big->bits[0] = num->bits[0];
+    big->bits[1] = num->bits[1];
+    big->bits[2] = num->bits[2];
+  }
+  return flag;
+}
+
+int to_dec(const s21_big_decimal *big, s21_decimal *num) {
+  const int ok = 0;
+  const int null_big = 1;
+  const int overflow = 2;
+
+  int flag = ok;
+  *num = (s21_decimal){0};
+
+  if (!big) flag = null_big;
+  else {
+    num->bits[DEC_METAINFO] = big->bits[BIG_METAINFO]; //- знак и степень
+    for (int i = DEC_BEGIN; i <= DEC_END; ++i) num->bits[i] = big->bits[i];
+    for (int i = DEC_END + 1; !flag && i <= BIG_END; ++i) {
+      if (big->bits[i] != 0) flag = overflow;
+    }
+  }
+  return flag;
 }
 
 // printf("HEX: %X\n", x); // printf - в шестнадцатеричном
@@ -255,27 +304,21 @@ void multiply_by_10(s21_big_decimal *big) {
 
 
 // для сравнения
-// 1: num1 > num2, 0: num1 == num2, -1: num1 < num2
-int compare_big_decimal(s21_big_decimal num1, s21_big_decimal num2) {
-  int stop = FALSE;
+// 1: big_1 > big_2, 0: big_1 == big_2, -1: big_1 < big_2
+int compare_big_decimal(const s21_big_decimal* big_1, const s21_big_decimal* big_2) {
   int comparison_result = 0;
-  for (int i = BIG_MAX_POS; i >= 0; i--) {
-    if (get_big_bit(&num1, i) > get_big_bit(&num2, i) && !stop) {
-      stop = TRUE;
-      comparison_result = 1;
-    } else if (get_big_bit(&num1, i) < get_big_bit(&num2, i) && !stop) {
-      stop = TRUE;
-      comparison_result = -1;
-    }
+  for (int i = BIG_END; !comparison_result && i >= BIG_BEGIN; --i) {
+    if (big_1->bits[i] > big_2->bits[i]) comparison_result = 1;
+    else if (big_1->bits[i] < big_2->bits[i]) comparison_result = -1;
   }
   return comparison_result;
 }
 
 // 1: num1 > num2, 0: num1 == num2, -1: num1 < num2
-int compare_decimal(s21_decimal num1, s21_decimal num2) {
+int compare_decimal(const s21_decimal* num1, const s21_decimal* num2) {
   s21_big_decimal value_1_big, value_2_big;
-  convert_to_big_decimal(&num1, &value_1_big);
-  convert_to_big_decimal(&num2, &value_2_big);
+  to_big(num1, &value_1_big);
+  to_big(num2, &value_2_big);
   normalize_scales(&value_1_big, &value_2_big);
-  return compare_big_decimal(value_1_big, value_2_big);
+  return compare_big_decimal(&value_1_big, &value_2_big);
 }

@@ -1,11 +1,15 @@
-#include <check.h>
-#include <stdint.h>
-
-#include "../src/utils/utils.h"
+#include "test_utils.h"
 
 // Простая проверка двух big_decimal
 void assert_big_decimal_eq(s21_big_decimal a, s21_big_decimal b) {
     for (int i = 0; i < 8; i++) {
+        ck_assert_uint_eq(a.bits[i], b.bits[i]);
+    }
+}
+
+// Вспомогательная функция для сравнения decimal
+void assert_decimal_eq(s21_decimal a, s21_decimal b) {
+    for (int i = 0; i < 4; i++) {
         ck_assert_uint_eq(a.bits[i], b.bits[i]);
     }
 }
@@ -176,6 +180,84 @@ START_TEST(test_normalize_scales_equal) {
 }
 END_TEST
 
+
+
+/* Тесты для to_big() */
+
+START_TEST(test_to_big_null_input) {
+    s21_big_decimal big;
+    int res = to_big(NULL, &big);
+    ck_assert_int_eq(res, 1);
+}
+END_TEST
+
+START_TEST(test_to_big_normal_conversion) {
+    s21_decimal num = new_dec_native(0xFFFFFFFF, 0xAAAAAAAA, 0x55555555, 0x80010000);
+    s21_big_decimal expected = new_big_native(0, 0, 0, 0, 0xFFFFFFFF, 0xAAAAAAAA, 0x55555555, 0x80010000);
+    s21_big_decimal result;
+    
+    int res = to_big(&num, &result);
+    
+    ck_assert_int_eq(res, 0);
+    assert_big_decimal_eq(result, expected);
+}
+END_TEST
+
+START_TEST(test_to_big_zero_values) {
+    s21_decimal num = new_dec_native(0, 0, 0, 0x30000);
+    s21_big_decimal expected = new_big_native(0, 0, 0, 0, 0, 0, 0, 0x30000);
+    s21_big_decimal result;
+    
+    int res = to_big(&num, &result);
+    
+    ck_assert_int_eq(res, 0);
+    assert_big_decimal_eq(result, expected);
+}
+END_TEST
+
+/* Тесты для to_dec() */
+
+START_TEST(test_to_dec_null_input) {
+    s21_decimal num;
+    int res = to_dec(NULL, &num);
+    ck_assert_int_eq(res, 1);
+}
+END_TEST
+
+START_TEST(test_to_dec_normal_conversion) {
+    s21_big_decimal big = new_big_native(0, 0, 0, 0, 0, 0xAAAAAAAA, 0x55555555, 0x80010000);
+    s21_decimal expected = new_dec_native(0, 0xAAAAAAAA, 0x55555555, 0x80010000);
+    s21_decimal result;
+    
+    int res = to_dec(&big, &result);
+    
+    ck_assert_int_eq(res, 0);
+    assert_decimal_eq(result, expected);
+}
+END_TEST
+
+START_TEST(test_to_dec_overflow) {
+    s21_big_decimal big = new_big_native(0, 0, 1, 0, 0, 0, 0, 0x10000);
+    s21_decimal result;
+    
+    int res = to_dec(&big, &result);
+    
+    ck_assert_int_eq(res, 2);
+}
+END_TEST
+
+START_TEST(test_to_dec_zero_values) {
+    s21_big_decimal big = new_big_native(0, 0, 0, 0, 0, 0, 0, 0x30000);
+    s21_decimal expected = new_dec_native(0, 0, 0, 0x30000);
+    s21_decimal result;
+    
+    int res = to_dec(&big, &result);
+    
+    ck_assert_int_eq(res, 0);
+    assert_decimal_eq(result, expected);
+}
+END_TEST
+
 Suite *make_suite(void) {
     Suite *s = suite_create("Big Decimal Utils Functions Test");
 
@@ -201,14 +283,21 @@ Suite *make_suite(void) {
     return s;
 }
 
-int main(void) {
-
-    Suite *s = make_suite();
-    SRunner *runner = srunner_create(s);
-
-    srunner_run_all(runner, CK_VERBOSE);
-    int failed = srunner_ntests_failed(runner);
-    srunner_free(runner);
-
-    return (failed) ? 1 : 0;
+Suite *convert_suite(void) {
+    Suite *s = suite_create("Conversion Suite");
+    
+    TCase *tc_to_big = tcase_create("to_big");
+    tcase_add_test(tc_to_big, test_to_big_null_input);
+    tcase_add_test(tc_to_big, test_to_big_normal_conversion);
+    tcase_add_test(tc_to_big, test_to_big_zero_values);
+    suite_add_tcase(s, tc_to_big);
+    
+    TCase *tc_to_dec = tcase_create("to_dec");
+    tcase_add_test(tc_to_dec, test_to_dec_null_input);
+    tcase_add_test(tc_to_dec, test_to_dec_normal_conversion);
+    tcase_add_test(tc_to_dec, test_to_dec_overflow);
+    tcase_add_test(tc_to_dec, test_to_dec_zero_values);
+    suite_add_tcase(s, tc_to_dec);
+    
+    return s;
 }
