@@ -1,18 +1,5 @@
-#include "test_utils.h"
-
-// Простая проверка двух big_decimal
-void assert_big_decimal_eq(s21_big_decimal a, s21_big_decimal b) {
-    for (int i = 0; i < 8; i++) {
-        ck_assert_uint_eq(a.bits[i], b.bits[i]);
-    }
-}
-
-// Вспомогательная функция для сравнения decimal
-void assert_decimal_eq(s21_decimal a, s21_decimal b) {
-    for (int i = 0; i < 4; i++) {
-        ck_assert_uint_eq(a.bits[i], b.bits[i]);
-    }
-}
+// test/test_utils.c
+#include "../test/test_utils.h"
 
 START_TEST(test_shift_left_one_bit) {
     s21_big_decimal input = from_bits_native(0, 0, 0, 0, 0, 0, 1, 0); // число 1

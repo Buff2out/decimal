@@ -1,3 +1,4 @@
+// src/utils/utils.c
 #include "utils.h"
 
 // Вспомогательная функция для создания big_decimal из массива

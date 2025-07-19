@@ -1,3 +1,4 @@
+// src/s21_decimal.h
 #ifndef S21_DECIMAL_H
 #define S21_DECIMAL_H
 
