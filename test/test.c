@@ -1,7 +1,7 @@
 // test/test.c
 #include <check.h>
 #include <stdlib.h>
-#include "test.h"
+#include "../test/test.h"
 
 // Простая проверка двух big_decimal
 void assert_big_decimal_eq(s21_big_decimal a, s21_big_decimal b) {
@@ -18,11 +18,14 @@ void assert_decimal_eq(s21_decimal a, s21_decimal b) {
 }
 
 int main(void) {
-    Suite *s = make_suite();
-    // Создаем runner
+    Suite *s = suite_normalize();
     SRunner *runner = srunner_create(s);
+    
+    srunner_add_suite(runner, suite_shift());
     srunner_add_suite(runner, convert_suite());
     srunner_add_suite(runner, add_suite());
+    srunner_add_suite(runner, compare_suite());
+    srunner_add_suite(runner, sub_suite());
 
     srunner_run_all(runner, CK_VERBOSE);
     int failed = srunner_ntests_failed(runner);

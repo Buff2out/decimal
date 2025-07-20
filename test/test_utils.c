@@ -245,28 +245,105 @@ START_TEST(test_to_dec_zero_values) {
 }
 END_TEST
 
-Suite *make_suite(void) {
+START_TEST(test_compare_equal) {
+    s21_big_decimal a = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
+    s21_big_decimal b = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
+    ck_assert_int_eq(compare_big_decimal(&a, &b), 0);
+}
+END_TEST
+
+START_TEST(test_compare_first_greater_lsb) {
+    s21_big_decimal a = new_big_native(0, 0, 0, 0, 0, 0, 124, 0);
+    s21_big_decimal b = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
+    ck_assert_int_eq(compare_big_decimal(&a, &b), 1);
+}
+END_TEST
+
+START_TEST(test_compare_first_greater_msb) {
+    s21_big_decimal a = new_big_native(1, 0, 0, 0, 0, 0, 0, 0);
+    s21_big_decimal b = new_big_native(0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    ck_assert_int_eq(compare_big_decimal(&a, &b), 1);
+}
+END_TEST
+
+START_TEST(test_compare_second_greear_lsb) {
+    s21_big_decimal a = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
+    s21_big_decimal b = new_big_native(0, 0, 0, 0, 0, 0, 124, 0);
+    ck_assert_int_eq(compare_big_decimal(&a, &b), -1);
+}
+END_TEST
+
+START_TEST(test_compare_second_greater_msb) {
+    s21_big_decimal a = new_big_native(0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    s21_big_decimal b = new_big_native(1, 0, 0, 0, 0, 0, 0, 0);
+    ck_assert_int_eq(compare_big_decimal(&a, &b), -1);
+}
+END_TEST
+
+START_TEST(test_compare_max_values) {
+    s21_big_decimal max = new_big_native(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    ck_assert_int_eq(compare_big_decimal(&max, &max), 0);
+}
+END_TEST
+
+START_TEST(test_compare_zero) {
+    s21_big_decimal zero = {0};
+    ck_assert_int_eq(compare_big_decimal(&zero, &zero), 0);
+}
+END_TEST
+
+START_TEST(test_compare_with_zero) {
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 1, 0);
+    s21_big_decimal zero = {0};
+    ck_assert_int_eq(compare_big_decimal(&num, &zero), 1);
+    ck_assert_int_eq(compare_big_decimal(&zero, &num), -1);
+}
+END_TEST
+
+Suite* compare_suite(void) {
+    Suite *s = suite_create("Big Decimal Comparison");
+    
+    TCase *tc_core = tcase_create("Core");
+    tcase_add_test(tc_core, test_compare_equal);
+    tcase_add_test(tc_core, test_compare_first_greater_lsb);
+    tcase_add_test(tc_core, test_compare_first_greater_msb);
+    tcase_add_test(tc_core, test_compare_second_greear_lsb);
+    tcase_add_test(tc_core, test_compare_second_greater_msb);
+    tcase_add_test(tc_core, test_compare_max_values);
+    tcase_add_test(tc_core, test_compare_zero);
+    tcase_add_test(tc_core, test_compare_with_zero);
+    
+    suite_add_tcase(s, tc_core);
+    return s;
+}
+
+Suite *suite_shift(void) {
     Suite *s = suite_create("Big Decimal Utils Functions Test");
 
-    TCase *tc_core = tcase_create("Core");
-    tcase_add_test(tc_core, test_shift_left_one_bit);
-    tcase_add_test(tc_core, test_shift_left_three_bits);
-    tcase_add_test(tc_core, test_shift_left_with_carry_between_words);
-    tcase_add_test(tc_core, test_shift_left_does_not_touch_meta);
+    TCase *tc_shift = tcase_create("Core");
+    tcase_add_test(tc_shift, test_shift_left_one_bit);
+    tcase_add_test(tc_shift, test_shift_left_three_bits);
+    tcase_add_test(tc_shift, test_shift_left_with_carry_between_words);
+    tcase_add_test(tc_shift, test_shift_left_does_not_touch_meta);
+
+    suite_add_tcase(s, tc_shift);
+    return s;
+}
+
+Suite *suite_normalize(void) {
+    Suite *s = suite_create("Big Decimal Utils Functions Test");
 
     TCase *tc_normalize = tcase_create("Core");
     tcase_add_test(tc_normalize, test_normalize_equal_scales);
     tcase_add_test(tc_normalize, test_normalize_num1_greater_scale);
     tcase_add_test(tc_normalize, test_normalize_num2_greater_scale);
 
-    tcase_add_test(tc_core, test_multiply_by_10_basic);
-    tcase_add_test(tc_core, test_normalize_scales_increase_first);
-    tcase_add_test(tc_core, test_normalize_scales_increase_second);
-    tcase_add_test(tc_core, test_normalize_scales_equal);
+    tcase_add_test(tc_normalize, test_multiply_by_10_basic);
+    tcase_add_test(tc_normalize, test_normalize_scales_increase_first);
+    tcase_add_test(tc_normalize, test_normalize_scales_increase_second);
+    tcase_add_test(tc_normalize, test_normalize_scales_equal);
     
     suite_add_tcase(s, tc_normalize);
-
-    suite_add_tcase(s, tc_core);
     return s;
 }
 

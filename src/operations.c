@@ -1,34 +1,85 @@
 // src/operations.c
 #include "../src/operations.h"
 
-#define OK 0;
-#define PLUS_INF 1;
-#define MINUS_INF 2;
-#define DIV_BY_ZERO 3;
-#define ERROR 4;
+/*
+какие бывают случаи
++a, +b + => a + b (sign a)
++a, +b - (a > b) => a - b (sign a)
++a, +b - (a <= b) => b - a (sign b)
+
+-a, +b - => a + b (sign a)
+-a, +b + (a > b) => a - b (sign a)
+-a, +b + (a <= b) => b - a (sign b)
+
++a, -b - => a + b (sign a)
++a, -b + (a > b) => a - b (sign a)
++a, -b + (a <= b) => b - a (sign b)
+
+-a, -b + => a + b (sign a)
+-a, -b - (a > b) => a - b (sign a)
+-a, -b - (a <= b) => b - a (sign b)
+
+Сгруппируем:
++a, +b + => a + b (sign a)
++a, -b - => a + b (sign a)
+-a, +b - => a + b (sign a)
+-a, -b + => a + b (sign a)
+
++a, +b - (a > b) => a - b (sign a)
++a, -b + (a > b) => a - b (sign a)
+-a, +b + (a > b) => a - b (sign a)
+-a, -b - (a > b) => a - b (sign a)
+
++a, +b - (a <= b) => b - a (sign b)
++a, -b + (a <= b) => b - a (sign b)
+-a, +b + (a <= b) => b - a (sign b)
+-a, -b - (a <= b) => b - a (sign b)
+*/
 
 int add(const s21_big_decimal *a, const s21_big_decimal *b, s21_big_decimal *result) {
-    if (!a || !b || !result) return 1;  // Проверка на NULL
-    
-    *result = (s21_big_decimal){0};
-    unsigned long long carry = 0;
-    
-    // Складываем по битам, начиная с младших
-    for (int i = 0; i < 7; i++) {  // 7 слов (без метаинформации)
-        unsigned long long sum = (unsigned long long)a->bits[i] + b->bits[i] + carry;
-        result->bits[i] = (unsigned)(sum & 0xFFFFFFFF);
-        carry = sum >> 32;
+    int flag = OK;
+    if (!a || !b || !result) {
+        flag = ERROR;
     }
-    
-    // Переносим метаинформацию (знак и степень) из первого числа
-    result->bits[7] = a->bits[7];
-    
-    // Проверка на переполнение
-    if (carry) {
-        return 1;  // Флаг переполнения
+    else {
+        *result = (s21_big_decimal){0};
+        unsigned long long carry = 0;
+        for (int i = BIG_BEGIN; i <= BIG_END; ++i) {
+            unsigned long long sum = (unsigned long long)a->bits[i] + b->bits[i] + carry;
+            result->bits[i] = (unsigned)(sum & 0xFFFFFFFF);
+            carry = sum >> 32;
+        }
+        result->bits[BIG_METAINFO] = a->bits[BIG_METAINFO];
+        if (carry) {
+            flag = PLUS_INF;
+        }
     }
-    
-    return 0;
+    return flag;
+}
+
+
+// Функция подразумевает, что из большего числа вычитают меньшее.
+int sub(const s21_big_decimal *a, const s21_big_decimal *b, s21_big_decimal *result) {
+    int flag = OK;
+    if (!a || !b || !result) {
+        flag = ERROR;
+    }
+    else {
+        *result = (s21_big_decimal){0};
+        long long borrow = 0;
+        for (int i = BIG_BEGIN; i <= BIG_END; ++i) {
+            long long diff = (long long)a->bits[i] - b->bits[i] - borrow;
+            borrow = 0;
+            if (diff < 0) {
+                diff += 0x100000000LL; // 2^32
+                borrow = 1;
+            }
+            result->bits[i] = (unsigned int)(diff & 0xFFFFFFFF);
+        }
+        result->bits[BIG_METAINFO] = a->bits[BIG_METAINFO];
+        if (borrow) flag = MINUS_INF;
+    }
+    return flag;
 }
 
 int s21_add(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {

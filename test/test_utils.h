@@ -7,6 +7,8 @@
 #include "../test/test.h"
 
 Suite *convert_suite(void);
-Suite *make_suite(void);
+Suite *suite_normalize(void);
+Suite *suite_shift(void);
+Suite* compare_suite(void);
 
 #endif
