@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Werror -g -std=c11
 TEST_FLAGS = -lcheck -lm -lpthread
 
-SRC = src/utils/utils.c src/operations.c
+SRC = $(shell find src -type f -name '*.c')
 OBJ = $(SRC:.c=.o)
 
 TEST_SRC = $(wildcard test/*.c)
