@@ -5,7 +5,7 @@ TEST_FLAGS = -lcheck -lm -lpthread
 SRC = src/utils/utils.c src/operations.c
 OBJ = $(SRC:.c=.o)
 
-TEST_SRC = test/test.c test/test_utils.c test/test_add.c test/test_sub.c
+TEST_SRC = $(wildcard test/*.c)
 TEST_OBJ = $(TEST_SRC:.c=.o)
 TEST_EXEC = test/test
 
