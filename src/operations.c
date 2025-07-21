@@ -1,41 +1,6 @@
 // src/operations.c
 #include "../src/operations.h"
 
-/*
-какие бывают случаи
-+a, +b + => a + b (sign a)
-+a, +b - (a > b) => a - b (sign a)
-+a, +b - (a <= b) => b - a (sign b)
-
--a, +b - => a + b (sign a)
--a, +b + (a > b) => a - b (sign a)
--a, +b + (a <= b) => b - a (sign b)
-
-+a, -b - => a + b (sign a)
-+a, -b + (a > b) => a - b (sign a)
-+a, -b + (a <= b) => b - a (sign b)
-
--a, -b + => a + b (sign a)
--a, -b - (a > b) => a - b (sign a)
--a, -b - (a <= b) => b - a (sign b)
-
-Сгруппируем:
-+a, +b + => a + b (sign a)
-+a, -b - => a + b (sign a)
--a, +b - => a + b (sign a)
--a, -b + => a + b (sign a)
-
-+a, +b - (a > b) => a - b (sign a)
-+a, -b + (a > b) => a - b (sign a)
--a, +b + (a > b) => a - b (sign a)
--a, -b - (a > b) => a - b (sign a)
-
-+a, +b - (a <= b) => b - a (sign b)
-+a, -b + (a <= b) => b - a (sign b)
--a, +b + (a <= b) => b - a (sign b)
--a, -b - (a <= b) => b - a (sign b)
-*/
-
 int add(const s21_big_decimal *a, const s21_big_decimal *b, s21_big_decimal *result) {
     int flag = OK;
     if (!a || !b || !result) {
@@ -51,7 +16,8 @@ int add(const s21_big_decimal *a, const s21_big_decimal *b, s21_big_decimal *res
         }
         result->bits[BIG_METAINFO] = a->bits[BIG_METAINFO];
         if (carry) {
-            flag = PLUS_INF;
+            int sign_1 = get_big_sign(a);
+            flag = (sign_1 == 0) ? PLUS_INF : MINUS_INF;
         }
     }
     return flag;
@@ -84,46 +50,89 @@ int sub(const s21_big_decimal *a, const s21_big_decimal *b, s21_big_decimal *res
 
 int s21_add(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
     int flag = OK;
-    if (!result) return ERROR; // Ошибка: указатель NULL
-    *result = (s21_decimal){0};
+    if (!result) {
+        flag = ERROR;
+    } else {
+        *result = (s21_decimal){0};
 
-    s21_big_decimal big_1 = {0}, big_2 = {0};
-    to_big(&value_1, &big_1);
-    to_big(&value_2, &big_2);
+        s21_big_decimal big_1 = {0}, big_2 = {0};
+        to_big(&value_1, &big_1);
+        to_big(&value_2, &big_2);
 
-    normalize_scales(&big_1, &big_2);
+        normalize_scales(&big_1, &big_2);
 
-    int sign_1 = get_sign(&value_1);
-    int sign_2 = get_sign(&value_2);
+        int sign_1 = get_sign(&value_1);
+        int sign_2 = get_sign(&value_2);
 
-    s21_big_decimal result_big = {0};
+        int cmp_res = compare_big_decimal(&big_1, &big_2);
 
-    // Складываем или вычитаем в зависимости от знаков
-    if (sign_1 == sign_2) {
-        flag = add(&big_1, &big_2, &result_big);
+        s21_big_decimal result_big = {0};
+
+        /*
+        Группировка по операциям
+        +a, +b + => a + b (sign a)
+        -a, -b + => a + b (sign a)
+        +a, -b + (a > b) => a - b (sign a)
+        -a, +b + (a > b) => a - b (sign a)
+        +a, -b + (a <= b) => b - a (sign b)
+        -a, +b + (a <= b) => b - a (sign b)
+        */
+        if (sign_1 == sign_2) {
+            flag = add(&big_1, &big_2, &result_big);
+            set_big_sign(&result_big, sign_1);
+        } else if (sign_1 != sign_2 && 1 == cmp_res) {
+            flag = sub(&big_1, &big_2, &result_big);
+            set_big_sign(&result_big, sign_1);
+        } else if (sign_1 != sign_2 && (0 == cmp_res || -1 == cmp_res)) {
+            flag = sub(&big_2, &big_1, &result_big);
+            set_big_sign(&result_big, sign_2);
+        }
+        to_dec(&result_big, result);
     }
-
-    /*
-    
-    */
-   return flag;
+    return flag;
 }
 
-// int s21_sub(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
-//     s21_decimal flag = value_1;
-//     flag = value_2;
-//     s21_decimal* flag = result;
-//     int flag = OK;
-//     // int scale_1 = get_scale(&value_1);
-//     // int scale_2 = get_scale(&value_2);
+int s21_sub(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
+    int flag = OK;
+    if (!result) {
+        flag = ERROR;
+    } else {
+        *result = (s21_decimal){0};
 
+        s21_big_decimal big_1 = {0}, big_2 = {0};
+        to_big(&value_1, &big_1);
+        to_big(&value_2, &big_2);
 
-//     // int sign_1 = get_sign(&value_1);
-//     // int sign_2 = get_sign(&value_2);
+        normalize_scales(&big_1, &big_2);
 
-//     /*
+        int sign_1 = get_sign(&value_1);
+        int sign_2 = get_sign(&value_2);
 
-//     */
-//    return flag;
-// }
+        int cmp_res = compare_big_decimal(&big_1, &big_2);
+
+        s21_big_decimal result_big = {0};
+
+        /*
+        Группировка по операциям
+        +a, -b - => a + b (sign a)
+        -a, +b - => a + b (sign a)
+        +a, +b - (a > b) => a - b (sign a)
+        -a, -b - (a > b) => a - b (sign a)
+        +a, +b - (a <= b) => b - a (sign b)
+        -a, -b - (a <= b) => b - a (sign b)
+        */
+        if (sign_1 != sign_2) {
+            flag = add(&big_1, &big_2, &result_big);
+            set_big_sign(&result_big, sign_1);
+        } else if (sign_1 != sign_2 && 1 == cmp_res) {
+            flag = sub(&big_1, &big_2, &result_big);
+            set_big_sign(&result_big, sign_1);
+        } else if (sign_1 == sign_2 && (0 == cmp_res || -1 == cmp_res)) {
+            flag = sub(&big_2, &big_1, &result_big);
+            set_big_sign(&result_big, sign_2);
+        }
+        to_dec(&result_big, result);
+    }
+   return flag;
+}
 
