@@ -8,5 +8,6 @@
 #include "../test/test.h"
 
 Suite* sub_suite(void);
+Suite* s21_sub_suite(void);
 
 #endif
