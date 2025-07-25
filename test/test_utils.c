@@ -245,6 +245,92 @@ START_TEST(test_to_dec_zero_values) {
 }
 END_TEST
 
+// Тест: простая конвертация
+START_TEST(test_to_dec_simple) {
+    s21_big_decimal big = new_big_native(0, 0, 0, 0, 0, 0, 123, 0x00020000); // 1.23
+    s21_decimal result = {0};
+
+    int res = to_dec(&big, &result);
+
+    ck_assert_int_eq(res, 0);
+    ck_assert_uint_eq(result.bits[0], 123);
+    ck_assert_int_eq(get_scale(&result), 2);
+    ck_assert_int_eq(get_sign(&result), 0);
+}
+END_TEST
+
+// Тест: переполнение при scale == 0
+START_TEST(test_to_dec_overflow_scale_0) {
+    s21_big_decimal big = new_big_native(0, 0, 1, 0, 0, 0, 0, 0); // слишком большое
+    s21_decimal result = {0};
+
+    int res = to_dec(&big, &result);
+
+    ck_assert_int_eq(res, 2);
+}
+END_TEST
+
+// Тест: 1.25 → 1.2 (банковское округление) автотесты с банковским пока что говно
+START_TEST(test_to_dec_bankers_1_25) {
+    // 1.25 = 125 * 10^(-2)
+    s21_big_decimal big = new_big_native(0, 0, 0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 125, 0x00020000);
+    s21_decimal result = {0};
+
+    int res = to_dec(&big, &result);
+
+    ck_assert_int_eq(res, 0);
+    ck_assert_uint_eq(result.bits[0], 12); // 1.2
+    ck_assert_int_eq(get_scale(&result), 2);
+}
+END_TEST
+
+// Тест: 1.35 → 1.4
+START_TEST(test_to_dec_bankers_1_35) {
+    s21_big_decimal big = new_big_native(0, 0, 0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 135, 0x00020000);
+    s21_decimal result = {0};
+
+    int res = to_dec(&big, &result);
+
+    ck_assert_int_eq(res, 0);
+    ck_assert_uint_eq(result.bits[0], 14);
+    ck_assert_int_eq(get_scale(&result), 2);
+}
+END_TEST
+
+// Тест: 2.5 → 2 (чётное)
+START_TEST(test_to_dec_bankers_2_5) {
+    s21_big_decimal big = new_big_native(0, 0, 0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 25, 0x00010000);
+    s21_decimal result = {0};
+
+    int res = to_dec(&big, &result);
+
+    ck_assert_int_eq(res, 0);
+    ck_assert_uint_eq(result.bits[0], 2);
+    ck_assert_int_eq(get_scale(&result), 1);
+}
+END_TEST
+
+// Тест: 3.5 → 4 (нечётное → округляем вверх)
+START_TEST(test_to_dec_bankers_3_5) {
+    s21_big_decimal big = new_big_native(0, 0, 0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 35, 0x00010000);
+    s21_decimal result = {0};
+
+    int res = to_dec(&big, &result);
+
+    ck_assert_int_eq(res, 0);
+    ck_assert_uint_eq(result.bits[0], 4);
+    ck_assert_int_eq(get_scale(&result), 1);
+}
+END_TEST
+
+// Тест: NULL указатель
+START_TEST(test_to_dec_null) {
+    s21_decimal result = {0};
+    int res = to_dec(NULL, &result);
+    ck_assert_int_eq(res, 1);
+}
+END_TEST
+
 START_TEST(test_compare_equal) {
     s21_big_decimal a = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
     s21_big_decimal b = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
@@ -361,6 +447,13 @@ Suite *convert_suite(void) {
     tcase_add_test(tc_to_dec, test_to_dec_normal_conversion);
     tcase_add_test(tc_to_dec, test_to_dec_overflow);
     tcase_add_test(tc_to_dec, test_to_dec_zero_values);
+    tcase_add_test(tc_to_dec, test_to_dec_null);
+    tcase_add_test(tc_to_dec, test_to_dec_bankers_1_25);
+    tcase_add_test(tc_to_dec, test_to_dec_bankers_1_35);
+    tcase_add_test(tc_to_dec, test_to_dec_bankers_2_5);
+    tcase_add_test(tc_to_dec, test_to_dec_bankers_3_5);
+
+
     suite_add_tcase(s, tc_to_dec);
     
     return s;

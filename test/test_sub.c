@@ -27,6 +27,34 @@ START_TEST(s21_test_sub_phrases_0) {
 }
 END_TEST
 
+// must add mantisses
+START_TEST(s21_test_sub_phrases_0_negative_a) {
+    s21_decimal a = new_dec_native(0xA, 0xFAB, 0xCAFE, 0x80020000);
+    s21_decimal b = new_dec_native(0xDEB, 0xFED, 0xBEEF, 0x00020000);
+    s21_decimal expected = new_dec_native(0xDF5, 0x1F98, 0x189ED, 0x80020000);
+    s21_decimal result = {0};
+    
+    int flag = s21_sub(a, b, &result);
+    
+    ck_assert_int_eq(flag, 0);
+    assert_decimal_eq(result, expected);
+}
+END_TEST
+
+// must add mantisses
+START_TEST(s21_test_sub_phrases_0_negative_b) {
+    s21_decimal a = new_dec_native(0xA, 0xFAB, 0xCAFE, 0x00020000);
+    s21_decimal b = new_dec_native(0xDEB, 0xFED, 0xBEEF,  0x80020000);
+    s21_decimal expected = new_dec_native(0xDF5, 0x1F98, 0x189ED, 0x00020000);
+    s21_decimal result = {0};
+    
+    int flag = s21_sub(a, b, &result);
+    
+    ck_assert_int_eq(flag, 0);
+    assert_decimal_eq(result, expected);
+}
+END_TEST
+
 START_TEST(test_sub_huge_num_0) {
     s21_big_decimal a = new_big_native(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0xFFFFFFAF, 0xFFFFFFFA, 0x00000000);
     s21_big_decimal b = new_big_native(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000);
@@ -225,8 +253,9 @@ START_TEST(s21_test_sub_simple) {
     s21_decimal b = new_dec_native(0, 0, 3, 0);    // 3
     s21_decimal expected = new_dec_native(0, 0, 7, 0); // 7
     s21_decimal result = {0};
+    int flag = s21_sub(a, b, &result);
     
-    ck_assert_int_eq(s21_sub(a, b, &result), OK);
+    ck_assert_int_eq(flag, OK);
     assert_decimal_eq(result, expected);
 }
 END_TEST
@@ -340,6 +369,11 @@ START_TEST(s21_test_sub_a_less_than_b) {
 }
 END_TEST
 
+/*
+TODO: add autotests to 
+edge cases and banker's rounding
+*/
+
 Suite* sub_suite(void) {
     Suite *s = suite_create("Big Decimal Subtraction");
     
@@ -348,6 +382,8 @@ Suite* sub_suite(void) {
     tcase_add_test(tc_core, test_sub_max_minus_one);
     tcase_add_test(tc_core, test_sub_equal_numbers);
     tcase_add_test(tc_core, test_sub_with_borrow);
+    tcase_add_test(tc_core, s21_test_sub_phrases_0_negative_a);
+    tcase_add_test(tc_core, s21_test_sub_phrases_0_negative_b);
 
     tcase_add_test(tc_core, test_sub_phrases_0);
     tcase_add_test(tc_core, test_sub_huge_num_0);

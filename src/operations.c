@@ -37,7 +37,7 @@ int sub(const s21_big_decimal *a, const s21_big_decimal *b, s21_big_decimal *res
             long long diff = (long long)a->bits[i] - b->bits[i] - borrow;
             borrow = 0;
             if (diff < 0) {
-                diff += 0x100000000LL; // 2^32
+                diff += 0x100000000LL;
                 borrow = 1;
             }
             result->bits[i] = (unsigned int)(diff & 0xFFFFFFFF);
@@ -61,8 +61,8 @@ int s21_add(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
 
         normalize_scales(&big_1, &big_2);
 
-        int sign_1 = get_sign(&value_1);
-        int sign_2 = get_sign(&value_2);
+        const int sign_1 = get_sign(&value_1);
+        const int sign_2 = get_sign(&value_2);
 
         int cmp_res = compare_big_decimal(&big_1, &big_2);
 
@@ -105,8 +105,8 @@ int s21_sub(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
 
         normalize_scales(&big_1, &big_2);
 
-        int sign_1 = get_sign(&value_1);
-        int sign_2 = get_sign(&value_2);
+        const int sign_1 = get_sign(&value_1);
+        const int sign_2 = get_sign(&value_2);
 
         int cmp_res = compare_big_decimal(&big_1, &big_2);
 
@@ -118,18 +118,19 @@ int s21_sub(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
         -a, +b - => a + b (sign a)
         +a, +b - (a > b) => a - b (sign a)
         -a, -b - (a > b) => a - b (sign a)
-        +a, +b - (a <= b) => b - a (sign b)
-        -a, -b - (a <= b) => b - a (sign b)
+        +a, +b - (a <= b) => b - a (sign !b)
+        -a, -b - (a <= b) => b - a (sign !b)
         */
         if (sign_1 != sign_2) {
             flag = add(&big_1, &big_2, &result_big);
             set_big_sign(&result_big, sign_1);
-        } else if (sign_1 != sign_2 && 1 == cmp_res) {
+        } else if (1 == cmp_res) {
             flag = sub(&big_1, &big_2, &result_big);
             set_big_sign(&result_big, sign_1);
-        } else if (sign_1 == sign_2 && (0 == cmp_res || -1 == cmp_res)) {
+        } else if (0 == cmp_res || -1 == cmp_res) {
             flag = sub(&big_2, &big_1, &result_big);
-            set_big_sign(&result_big, sign_2);
+            const int sign = 0 == cmp_res ? SIGN_PLUS : sign_2;
+            set_big_sign(&result_big, sign);
         }
         to_dec(&result_big, result);
     }

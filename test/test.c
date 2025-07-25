@@ -21,13 +21,11 @@ int main(void) {
     Suite *s = suite_normalize();
     SRunner *runner = srunner_create(s);
     
+    srunner_add_suite(runner, sub_suite());
+    srunner_add_suite(runner, add_suite());
     srunner_add_suite(runner, suite_shift());
     srunner_add_suite(runner, convert_suite());
-    srunner_add_suite(runner, add_suite());
     srunner_add_suite(runner, compare_suite());
-    srunner_add_suite(runner, sub_suite());
-    srunner_add_suite(runner, s21_sub_suite());
-
     srunner_add_suite(runner, s21_is_equal_suite());
     srunner_add_suite(runner, s21_is_greater_or_equal_suite());
     srunner_add_suite(runner, s21_is_greater_suite());

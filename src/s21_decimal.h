@@ -2,6 +2,9 @@
 #ifndef S21_DECIMAL_H
 #define S21_DECIMAL_H
 
+#define SIGN_PLUS 0
+#define SIGN_MINUS 1
+
 #define DEC_BEGIN 0
 #define BIG_BEGIN 0
 #define BIG_METAINFO 7
