@@ -30,6 +30,24 @@ s21_big_decimal from_bits_native(unsigned b6, unsigned b5, unsigned b4,
     return result;
 }
 
+// void copy_dec(s21_decimal* from, s21_decimal* to) {
+//   to->bits[0] = from->bits[0];
+//   to->bits[1] = from->bits[1];
+//   to->bits[2] = from->bits[2];
+//   to->bits[3] = from->bits[3];
+// }
+
+void copy_big(s21_big_decimal* from, s21_big_decimal* to) {
+  to->bits[0] = from->bits[0];
+  to->bits[1] = from->bits[1];
+  to->bits[2] = from->bits[2];
+  to->bits[3] = from->bits[3];
+  to->bits[4] = from->bits[4];
+  to->bits[5] = from->bits[5];
+  to->bits[6] = from->bits[6];
+  to->bits[7] = from->bits[7];
+}
+
 // Проверяем ноль ли число
 // warning num null pointer. 
 int is_zero(const s21_decimal* num) {
@@ -187,6 +205,17 @@ s21_big_decimal shift_left(s21_big_decimal big, unsigned shift_value) {
   return big;
 }
 
+void shift_left_to(s21_big_decimal * big, unsigned shift_value) {
+  unsigned memory = 0;
+  if (31 < shift_value) shift_value = 31;
+  for (unsigned i = BIG_BEGIN; i <= BIG_END; ++i) { // (int)(sizeof(s21_big_decimal) / sizeof(unsigned) - 1
+    unsigned temp = big->bits[i];
+    big->bits[i] <<= shift_value;
+    big->bits[i] |= memory;
+    memory = temp >> (32 - shift_value);
+  }
+}
+
 // warning num, big null pointer. 
 // legacy function
 void convert_to_big_decimal(const s21_decimal *num, s21_big_decimal *big) {
@@ -215,6 +244,54 @@ int to_big(const s21_decimal *num, s21_big_decimal *big) {
   return flag;
 }
 
+int fits_in_decimal(const s21_big_decimal *const big) {
+  int fits = 1;
+  for (int i = DEC_END + 1; fits && i <= BIG_END; i++) {
+      if (big->bits[i] != 0) fits = 0;
+  }
+  return fits;
+}
+
+void bank_round(s21_big_decimal *big) {
+  
+  /*
+    Округление
+    число 1234567890, скейл 3. проверяем что число не влезает. 
+    Проверяем остаток равен пяти, или больше/меньше 5, 
+    
+    (если равен пяти, 
+    то next = берём остаток от 100, получившееся делим на 10. получаем число - 
+    если оно чётное, 
+    то заводим число carry которое будем прибавлять (0 или 1), если нечётное то прибавляем)
+    если число меньше 5 то carry = 0, если больше, то carry = 1;
+    rem = num->bits[0] % 10
+
+    carry = 5 < rem || ( 5 == rem && 1 == ((num->bits[0] % 100) / 10) % 2 );
+    divide_by_10(num);
+    s21_big_decimal temp = {0};
+    add()
+
+    divide_by_10 (скейл декрементируется вместе с делением), 
+    затем прибавляем к числу carry через add() 
+      иначе может быть переполнение.
+  */
+  
+  // s21_big_decimal remainder = {0};
+  // s21_big_decimal ten = new_big_native(0, 0, 0, 0, 0, 0, 10, 0);
+  
+  // // Делим на 10 с сохранением остатка
+  // div_with_remainder(num, &ten, &remainder);
+  
+  // // Банковское округление (round-to-even)
+  // if (remainder.bits[0] > 5 || 
+  //     (remainder.bits[0] == 5 && (num->bits[0] & 1))) {
+  //     s21_big_decimal one = {{1, 0, 0, 0, 0, 0, 0, 0}};
+  //     s21_big_decimal temp = {0};
+  //     add(num, &one, &temp);
+  //     copy_big(&temp, num);
+  // }
+}
+
 int to_dec(s21_big_decimal *big, s21_decimal *num) {
   const int ok = 0;
   const int null_big = 1;
@@ -223,96 +300,44 @@ int to_dec(s21_big_decimal *big, s21_decimal *num) {
   int flag = ok;
   *num = (s21_decimal){0};
 
-  if (!big) { 
-    flag = null_big; 
-  } else {
-    // Проверяем, поместится ли число в 96 бит мантиссы
-    int overflow = 0;
+  if (!big) flag = null_big;
+  else {
+    num->bits[DEC_METAINFO] = big->bits[BIG_METAINFO]; //- знак и степень
+    for (int i = DEC_BEGIN; i <= DEC_END; ++i) num->bits[i] = big->bits[i];
     for (int i = DEC_END + 1; !flag && i <= BIG_END; ++i) {
-        if (big->bits[i] != 0) {
-            flag = overflow;
-        }
-    }
-
-    int scale = get_big_scale(big);
-    int sign = get_big_sign(big);
-
-    if (!flag) {
-      // Помещается — просто копируем
-      for (int i = DEC_BEGIN; i <= DEC_END; ++i) {
-          num->bits[i] = big->bits[i];
-      }
-      set_scale(num, scale);
-      set_sign(num, sign);
-    } else if (scale != 0) {
-      // === Банковское округление ===
-
-      s21_big_decimal temp = *big;
-      int round_up = 0;
-
-      // Увеличиваем масштаб на 1, чтобы посмотреть на следующий разряд
-      multiply_by_10(&temp); // теперь scale увеличен, можно посмотреть на "десятичный" остаток
-
-      // Проверяем, нужно ли округлять
-      // Идея: если младшие биты (после масштаба) >= 5 * 10^(scale-1), то округляем вверх
-      // Но проще: нормализуем и проверим младшую цифру
-
-      // Упрощённый подход: смотрим, что будет при делении на 10
-      // Но мы можем проверить: если младшее слово (после масштабирования) >= 5, округляем
-
-      // Альтернатива: сдвигаем вправо на scale, смотрим последнюю цифру
-      // Но проще: попробуем вычесть 5 * 10^(scale-1)
-
-      // Упрощённая версия: если младшие биты >= половины шага масштаба → округляем
-
-      // Уменьшаем масштаб временно и смотрим, что будет при делении
-      // Но давай сделаем проще: используем `compare` с "половиной"
-
-      s21_big_decimal half = *big;
-      set_big_scale(&half, scale - 1); // 0.5, 0.05 и т.д.
-      half = shift_left(half, 1);      // умножаем на 2 → теперь это 1 * 10^(scale-1)
-      half = shift_left(half, 2);      // умножаем на 5 → 5 * 10^(scale-1)
-      // На самом деле: это сложно. Давай сделаем по-другому.
-
-      // === Простой подход: округляем "вверх", если младшие биты >= 5 * 10^(scale-1)
-      // Но мы не можем легко вычислить это. Поэтому:
-
-      // === Практический способ: нормализуем до целого, смотрим последнюю цифру
-      while (get_big_scale(big) > 0) {
-          divide_by_10(big); // делаем число целым
-      }
-
-      // Теперь смотрим последнюю цифру
-      unsigned last_digit = big->bits[DEC_BEGIN] % 10;
-
-      if (last_digit > 5) {
-          round_up = 1;
-      } else if (last_digit == 5) {
-          // Банковское правило: к ближайшему чётному
-          unsigned before_last = (big->bits[DEC_BEGIN] / 10) % 10;
-          if (before_last % 2 == 1) {
-              round_up = 1;
-          }
-      } else {
-          round_up = 0;
-      }
-
-      if (round_up) {
-          s21_big_decimal one = {0};
-          one.bits[DEC_BEGIN] = 1;
-          set_big_scale(&one, scale);
-          add(&temp, &one, &temp); // добавляем 1 * 10^(-scale)
-      }
-
-      // Теперь пытаемся сконвертировать округлённое число
-      flag = to_dec(&temp, num);
-      if (flag == ok) {
-        set_sign(num, sign);
-      }
+      if (big->bits[i] != 0) flag = overflow;
     }
   }
   return flag;
 }
+
+int to_dec_with_bank_round(s21_big_decimal *big, s21_decimal *num) {
+  const int ok = 0;
+  const int null_big = 1;
+  const int overflow = 2;
+
+  int flag = ok;
+  *num = (s21_decimal){0};
+
+  if (!big) flag = null_big;
+  else {
+    flag = fits_in_decimal(big) ? ok : overflow;
+    // if (overflow == flag) {
+
+    // }
+    for (int i = DEC_BEGIN; !flag && i <= DEC_END; ++i) { 
+      num->bits[i] = big->bits[i]; 
+    }
+    num->bits[DEC_METAINFO] = big->bits[BIG_METAINFO]; //- знак и степень
+
+  }
+  return flag;
+}
+
+/*
+val = ...12345675
+rem = val % 10 => check rem 
+*/
 
 // printf("HEX: %X\n", x); // printf - в шестнадцатеричном
 // ниже в бинарном
@@ -401,22 +426,15 @@ void multiply_by_10(s21_big_decimal *big) {
   set_big_scale(big, get_big_scale(big) + 1);
 }
 
-void divide_by_10(s21_big_decimal *big) {
-    if (!big) return;
-
+unsigned divide_by_10(s21_big_decimal *big) {
     unsigned long long remainder = 0;
-
-    for (int i = BIG_BEGIN; i <= BIG_END; ++i) {
-        unsigned long long dividend = ((unsigned long long)remainder << 32) | big->bits[i];
-        big->bits[i] = (unsigned int)(dividend / 10);
-        remainder = dividend % 10;
+    for (int i = BIG_END; i >= BIG_BEGIN; i--) {
+        unsigned long long cur = ((unsigned long long)remainder << 32) + big->bits[i];
+        big->bits[i] = (unsigned int)(cur / 10);
+        remainder = cur % 10;
     }
-
-    // Уменьшаем масштаб
-    int scale = get_big_scale(big);
-    if (scale > 0) {
-        set_big_scale(big, scale - 1);
-    }
+    set_big_scale(big, get_big_scale(big) - 1);
+    return (unsigned)remainder; // остаток от деления на 10
 }
 
 
