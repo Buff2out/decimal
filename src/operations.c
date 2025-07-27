@@ -87,7 +87,7 @@ int s21_add(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
             flag = sub(&big_2, &big_1, &result_big);
             set_big_sign(&result_big, sign_2);
         }
-        to_dec(&result_big, result);
+        to_dec_with_bank_round(&result_big, result);
     }
     return flag;
 }
@@ -132,7 +132,7 @@ int s21_sub(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
             const int sign = 0 == cmp_res ? SIGN_PLUS : sign_2;
             set_big_sign(&result_big, sign);
         }
-        to_dec(&result_big, result);
+        to_dec_with_bank_round(&result_big, result);
     }
    return flag;
 }

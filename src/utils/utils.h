@@ -30,11 +30,11 @@ s21_big_decimal shift_left(s21_big_decimal big, unsigned shift_value);
 void convert_to_big_decimal(const s21_decimal *num, s21_big_decimal *big);
 int to_big(const s21_decimal *num, s21_big_decimal *big);
 
+// void shift_left_to(s21_big_decimal * big, unsigned shift_value);
 int to_big(const s21_decimal *num, s21_big_decimal *big);
 int fits_in_decimal(const s21_big_decimal *const big);
-void bank_round(s21_big_decimal *big);
 int to_dec(s21_big_decimal *big, s21_decimal *num);
-// int to_dec_round(s21_big_decimal *big, s21_decimal *num);
+int to_dec_with_bank_round(s21_big_decimal *big, s21_decimal *num);
 void print_binary(unsigned num);
 void print_dec(const s21_decimal* num);
 void print_dec_native(const s21_decimal* num);
@@ -44,7 +44,7 @@ void print_big_native(const s21_big_decimal* num);
 void print_big_native_hex(const s21_big_decimal* num);
 void normalize_scales(s21_big_decimal *num1, s21_big_decimal *num2);
 void multiply_by_10(s21_big_decimal *big);
-void divide_by_10(s21_big_decimal *big);
+unsigned divide_by_10(s21_big_decimal *big);
 int compare_big_decimal(const s21_big_decimal* big_1, const s21_big_decimal* big_2);
 int compare_decimal(const s21_decimal* num1, const s21_decimal* num2);
 #endif

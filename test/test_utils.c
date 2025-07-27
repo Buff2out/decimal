@@ -276,7 +276,7 @@ START_TEST(test_to_dec_bankers_1_25) {
     s21_big_decimal big = new_big_native(0, 0, 0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 125, 0x00020000);
     s21_decimal result = {0};
 
-    int res = to_dec_round(&big, &result);
+    int res = to_dec_with_bank_round(&big, &result);
 
     ck_assert_int_eq(res, 0);
     ck_assert_uint_eq(result.bits[0], 12); // 1.2
@@ -289,7 +289,7 @@ START_TEST(test_to_dec_bankers_1_35) {
     s21_big_decimal big = new_big_native(0, 0, 0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 135, 0x00020000);
     s21_decimal result = {0};
 
-    int res = to_dec_round(&big, &result);
+    int res = to_dec_with_bank_round(&big, &result);
 
     ck_assert_int_eq(res, 0);
     ck_assert_uint_eq(result.bits[0], 14);
@@ -302,7 +302,7 @@ START_TEST(test_to_dec_bankers_2_5) {
     s21_big_decimal big = new_big_native(0, 0, 0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 25, 0x00010000);
     s21_decimal result = {0};
 
-    int res = to_dec_round(&big, &result);
+    int res = to_dec_with_bank_round(&big, &result);
 
     ck_assert_int_eq(res, 0);
     ck_assert_uint_eq(result.bits[0], 2);
@@ -315,7 +315,7 @@ START_TEST(test_to_dec_bankers_3_5) {
     s21_big_decimal big = new_big_native(0, 0, 0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 35, 0x00010000);
     s21_decimal result = {0};
 
-    int res = to_dec_round(&big, &result);
+    int res = to_dec_with_bank_round(&big, &result);
 
     ck_assert_int_eq(res, 0);
     ck_assert_uint_eq(result.bits[0], 4);
@@ -385,65 +385,6 @@ START_TEST(test_compare_with_zero) {
     ck_assert_int_eq(compare_big_decimal(&zero, &num), -1);
 }
 END_TEST
-
-START_TEST(test_bank_round_exact) {
-    // 123.0 -> остаток 0, не должно округляться
-    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
-    s21_big_decimal expected = num;
-    bank_round(&num);
-    assert_big_decimal_eq(num, expected);
-}
-END_TEST
-
-START_TEST(test_bank_round_round_down) {
-    // 123.4 -> должно округлиться до 123
-    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 1234, 0x10000);
-    s21_big_decimal expected = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
-    bank_round(&num);
-    assert_big_decimal_eq(num, expected);
-}
-END_TEST
-
-START_TEST(test_bank_round_round_up) {
-    // 123.6 -> должно округлиться до 124
-    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 1236, 0x10000);
-    s21_big_decimal expected = new_big_native(0, 0, 0, 0, 0, 0, 124, 0);
-    bank_round(&num);
-    assert_big_decimal_eq(num, expected);
-}
-END_TEST
-
-START_TEST(test_bank_round_even_round_down) {
-    // 122.5 -> должно округлиться до 122 (к чётному)
-    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 1225, 0x10000);
-    s21_big_decimal expected = new_big_native(0, 0, 0, 0, 0, 0, 122, 0);
-    bank_round(&num);
-    assert_big_decimal_eq(num, expected);
-}
-END_TEST
-
-START_TEST(test_bank_round_even_round_up) {
-    // 123.5 -> должно округлиться до 124 (к чётному)
-    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 1235, 0x10000);
-    s21_big_decimal expected = new_big_native(0, 0, 0, 0, 0, 0, 124, 0);
-    bank_round(&num);
-    assert_big_decimal_eq(num, expected);
-}
-END_TEST
-
-Suite* bank_round_suite(void) {
-    Suite *s = suite_create("Bank Rounding");
-    
-    TCase *tc_core = tcase_create("Core");
-    tcase_add_test(tc_core, test_bank_round_exact);
-    tcase_add_test(tc_core, test_bank_round_round_down);
-    tcase_add_test(tc_core, test_bank_round_round_up);
-    tcase_add_test(tc_core, test_bank_round_even_round_down);
-    tcase_add_test(tc_core, test_bank_round_even_round_up);
-    
-    suite_add_tcase(s, tc_core);
-    return s;
-}
 
 Suite* compare_suite(void) {
     Suite *s = suite_create("Big Decimal Comparison");

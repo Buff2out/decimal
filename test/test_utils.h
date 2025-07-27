@@ -10,6 +10,5 @@ Suite *convert_suite(void);
 Suite *suite_normalize(void);
 Suite *suite_shift(void);
 Suite* compare_suite(void);
-Suite* bank_round_suite(void);
 
 #endif

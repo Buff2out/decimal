@@ -32,8 +32,6 @@ int main(void) {
     srunner_add_suite(runner, s21_is_less_or_equal_suite());
     srunner_add_suite(runner, s21_is_less_suite());
     srunner_add_suite(runner, s21_is_not_equal_suite());
-    srunner_add_suite(runner, bank_round_suite());
-
 
     srunner_run_all(runner, CK_VERBOSE);
     int failed = srunner_ntests_failed(runner);

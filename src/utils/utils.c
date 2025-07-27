@@ -16,11 +16,27 @@ s21_decimal new_dec_native(unsigned b2, unsigned b1, unsigned b0, unsigned b3) {
     return result;
 }
 
+s21_decimal get_dec_from_int(int val) {
+  s21_decimal result = {{0, 0, val, 0}};
+  if (val < 0) {
+    set_scale(&result, 1);
+  }
+  return result;
+}
+
 // Вспомогательная функция для создания big_decimal из массива
 s21_big_decimal new_big_native(unsigned b6, unsigned b5, unsigned b4, unsigned b3, 
                                unsigned b2, unsigned b1, unsigned b0, unsigned b7) {
     s21_big_decimal result = {{b0, b1, b2, b3, b4, b5, b6, b7}};
     return result;
+}
+
+s21_big_decimal get_big_from_int(int val) {
+  s21_big_decimal result = {{0, 0, 0, 0, 0, 0, val, 0}};
+  if (val < 0) {
+    set_big_scale(&result, 1);
+  }
+  return result;
 }
 
 // Вспомогательная функция для создания big_decimal из массива
@@ -205,16 +221,16 @@ s21_big_decimal shift_left(s21_big_decimal big, unsigned shift_value) {
   return big;
 }
 
-void shift_left_to(s21_big_decimal * big, unsigned shift_value) {
-  unsigned memory = 0;
-  if (31 < shift_value) shift_value = 31;
-  for (unsigned i = BIG_BEGIN; i <= BIG_END; ++i) { // (int)(sizeof(s21_big_decimal) / sizeof(unsigned) - 1
-    unsigned temp = big->bits[i];
-    big->bits[i] <<= shift_value;
-    big->bits[i] |= memory;
-    memory = temp >> (32 - shift_value);
-  }
-}
+// void shift_left_to(s21_big_decimal * big, unsigned shift_value) {
+//   unsigned memory = 0;
+//   if (31 < shift_value) shift_value = 31;
+//   for (unsigned i = BIG_BEGIN; i <= BIG_END; ++i) { // (int)(sizeof(s21_big_decimal) / sizeof(unsigned) - 1
+//     unsigned temp = big->bits[i];
+//     big->bits[i] <<= shift_value;
+//     big->bits[i] |= memory;
+//     memory = temp >> (32 - shift_value);
+//   }
+// }
 
 // warning num, big null pointer. 
 // legacy function
@@ -252,46 +268,6 @@ int fits_in_decimal(const s21_big_decimal *const big) {
   return fits;
 }
 
-void bank_round(s21_big_decimal *big) {
-  
-  /*
-    Округление
-    число 1234567890, скейл 3. проверяем что число не влезает. 
-    Проверяем остаток равен пяти, или больше/меньше 5, 
-    
-    (если равен пяти, 
-    то next = берём остаток от 100, получившееся делим на 10. получаем число - 
-    если оно чётное, 
-    то заводим число carry которое будем прибавлять (0 или 1), если нечётное то прибавляем)
-    если число меньше 5 то carry = 0, если больше, то carry = 1;
-    rem = num->bits[0] % 10
-
-    carry = 5 < rem || ( 5 == rem && 1 == ((num->bits[0] % 100) / 10) % 2 );
-    divide_by_10(num);
-    s21_big_decimal temp = {0};
-    add()
-
-    divide_by_10 (скейл декрементируется вместе с делением), 
-    затем прибавляем к числу carry через add() 
-      иначе может быть переполнение.
-  */
-  
-  // s21_big_decimal remainder = {0};
-  // s21_big_decimal ten = new_big_native(0, 0, 0, 0, 0, 0, 10, 0);
-  
-  // // Делим на 10 с сохранением остатка
-  // div_with_remainder(num, &ten, &remainder);
-  
-  // // Банковское округление (round-to-even)
-  // if (remainder.bits[0] > 5 || 
-  //     (remainder.bits[0] == 5 && (num->bits[0] & 1))) {
-  //     s21_big_decimal one = {{1, 0, 0, 0, 0, 0, 0, 0}};
-  //     s21_big_decimal temp = {0};
-  //     add(num, &one, &temp);
-  //     copy_big(&temp, num);
-  // }
-}
-
 int to_dec(s21_big_decimal *big, s21_decimal *num) {
   const int ok = 0;
   const int null_big = 1;
@@ -322,22 +298,28 @@ int to_dec_with_bank_round(s21_big_decimal *big, s21_decimal *num) {
   if (!big) flag = null_big;
   else {
     flag = fits_in_decimal(big) ? ok : overflow;
-    // if (overflow == flag) {
+    while (overflow == flag && get_big_scale(big)) {
+      int rem = num->bits[0] % 10;
+      int carry = rem > 5; // если rem > 5, то true (carry = 1)
+      if (5 == rem && 0 == carry) { // если нечётное число перед last цифрой,
+        carry = 1 == ((num->bits[0] % 100) / 10) % 2; // то carry = 1 (true), то есть округлять вверх
+      }
 
-    // }
-    for (int i = DEC_BEGIN; !flag && i <= DEC_END; ++i) { 
-      num->bits[i] = big->bits[i]; 
+      divide_by_10(big);
+      s21_big_decimal temp_res = {0};
+      s21_big_decimal temp_carry = get_big_from_int(carry);
+      if (carry) add(big, &temp_carry, &temp_res);
+      flag = fits_in_decimal(big) ? ok : overflow;
     }
-    num->bits[DEC_METAINFO] = big->bits[BIG_METAINFO]; //- знак и степень
-
+    if (ok == flag) {
+      for (int i = DEC_BEGIN; !flag && i <= DEC_END; ++i) { 
+        num->bits[i] = big->bits[i]; 
+      }
+      num->bits[DEC_METAINFO] = big->bits[BIG_METAINFO]; //- знак и степень
+    }
   }
   return flag;
 }
-
-/*
-val = ...12345675
-rem = val % 10 => check rem 
-*/
 
 // printf("HEX: %X\n", x); // printf - в шестнадцатеричном
 // ниже в бинарном
