@@ -139,7 +139,7 @@ int get_big_bit(const s21_big_decimal *big, unsigned pos) {
 // Ставим знак, либо 1 либо 0.
 int set_sign(s21_decimal *num, unsigned sign_value) {
   int is_err = FALSE;
-  if (1 < sign_value || !num || !sign_value) is_err = TRUE;
+  if (1 < sign_value || !num) is_err = TRUE;
   else {
     num->bits[DEC_METAINFO] = (num->bits[DEC_METAINFO] & ~0x80000000) | (sign_value << 31);
   }
@@ -148,7 +148,7 @@ int set_sign(s21_decimal *num, unsigned sign_value) {
 
 int set_big_sign(s21_big_decimal *big, const unsigned sign_value) {
   int is_err = FALSE;
-  if (1 < sign_value || !big || !sign_value) is_err = TRUE;
+  if (1 < sign_value || !big) is_err = TRUE;
   else {
     big->bits[BIG_METAINFO] = (big->bits[BIG_METAINFO] & ~0x80000000) | (sign_value << 31);
   }
@@ -158,7 +158,7 @@ int set_big_sign(s21_big_decimal *big, const unsigned sign_value) {
 // Ставим степень, от 0 по 28
 int set_scale(s21_decimal *num, const unsigned scale_value) {
   int is_err = FALSE;
-  if (28 < scale_value || !num || !scale_value) is_err = TRUE;
+  if (28 < scale_value || !num) is_err = TRUE;
   else {
     num->bits[DEC_METAINFO] = (num->bits[DEC_METAINFO] & ~0x00FF0000) | (scale_value << 16);
   }
@@ -167,9 +167,9 @@ int set_scale(s21_decimal *num, const unsigned scale_value) {
 
 int set_big_scale(s21_big_decimal *big, const unsigned scale_value) {
   int is_err = FALSE;
-  if (28 < scale_value || !big || !scale_value) is_err = TRUE;
+  if (28 < scale_value || !big) is_err = TRUE;
   else {
-    big->bits[BIG_METAINFO] = (big->bits[BIG_METAINFO] & ~0x00FF0000) | (scale_value << 16);
+    big->bits[BIG_METAINFO] = (big->bits[BIG_METAINFO] & 0xFF00FFFF) | (scale_value << 16);
   }
   return is_err;
 }
@@ -177,7 +177,7 @@ int set_big_scale(s21_big_decimal *big, const unsigned scale_value) {
 // Ставим любой бит числа. Валидные pos от 0 до 95
 int set_bit(s21_decimal *num, const unsigned val, const unsigned pos) {
   int is_err = FALSE;
-  if (DEC_MAX_POS < pos || !num || !val || !pos) is_err = TRUE;
+  if (DEC_MAX_POS < pos || !num) is_err = TRUE;
   else {
     unsigned part = pos / 32;
     unsigned local_pos = pos % 32;
@@ -194,7 +194,7 @@ int set_bit(s21_decimal *num, const unsigned val, const unsigned pos) {
 // Ставим любой бит числа. Валидные pos от 0 до 223
 int set_big_bit(s21_big_decimal *num, const unsigned val, const unsigned pos) {
   int is_err = FALSE;
-  if (BIG_MAX_POS < pos || !num || !val || !pos) is_err = TRUE;
+  if (BIG_MAX_POS < pos || !num) is_err = TRUE;
   else {
     unsigned part = pos / 32;
     unsigned local_pos = pos % 32;
@@ -414,7 +414,8 @@ unsigned divide_by_10(s21_big_decimal *big) {
         big->bits[i] = (unsigned)(cur / 10);
         remainder = cur % 10;
     }
-    set_big_scale(big, get_big_scale(big) - 1);
+    unsigned new_scale = get_big_scale(big) - 1;
+    set_big_scale(big, new_scale);
     return (unsigned)remainder; // остаток от деления на 10
 }
 
