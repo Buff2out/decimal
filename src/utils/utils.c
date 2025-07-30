@@ -16,7 +16,7 @@ s21_decimal new_dec_native(unsigned b2, unsigned b1, unsigned b0, unsigned b3) {
     return result;
 }
 
-s21_decimal get_dec_from_int(int val) {
+s21_decimal new_dec_from_int(int val) {
   s21_decimal result = {{0, 0, val, 0}};
   if (val < 0) {
     set_scale(&result, 1);
@@ -31,7 +31,7 @@ s21_big_decimal new_big_native(unsigned b6, unsigned b5, unsigned b4, unsigned b
     return result;
 }
 
-s21_big_decimal get_big_from_int(int val) {
+s21_big_decimal new_big_from_int(int val) {
   s21_big_decimal result = {{0, 0, 0, 0, 0, 0, val, 0}};
   if (val < 0) {
     set_big_scale(&result, 1);
@@ -307,7 +307,7 @@ int to_dec_with_bank_round(s21_big_decimal *big, s21_decimal *num) {
 
       divide_by_10(big);
       s21_big_decimal temp_res = {0};
-      s21_big_decimal temp_carry = get_big_from_int(carry);
+      s21_big_decimal temp_carry = new_big_from_int(carry);
       if (carry) add(big, &temp_carry, &temp_res);
       flag = fits_in_decimal(big) ? ok : overflow;
     }
@@ -360,9 +360,8 @@ void print_dec_native_hex(const s21_decimal* num) {
   for (unsigned i = DEC_END; i > DEC_BEGIN; --i) {
     printf("%d: 0x%08X ", i, num->bits[i]);
   }
-  printf("%d: 0x%08X ", 0, num->bits[0]);
-  printf("%d: 0x%08X ", 3, num->bits[3]);
-  printf("\n");
+  printf("%d: 0x%08X", 0, num->bits[0]);
+  printf("%d: 0x%08X\n", 3, num->bits[DEC_METAINFO]);
 }
 
 void print_big_native(const s21_big_decimal* num) {
@@ -379,8 +378,8 @@ void print_big_native_hex(const s21_big_decimal* num) {
   for (unsigned i = BIG_END; i > BIG_BEGIN; --i) {
     printf("%d: 0x%08X ", i, num->bits[i]);
   }
-  printf("%d: ", 0);
-  printf("%d: 0x%08X\n", 0, num->bits[0]);
+  printf("%d: 0x%08X ", 0, num->bits[0]);
+  printf("%d: 0x%08X\n", 7, num->bits[BIG_METAINFO]);
   printf("\n");
 }
 
@@ -412,7 +411,7 @@ unsigned divide_by_10(s21_big_decimal *big) {
     unsigned long long remainder = 0;
     for (int i = BIG_END; i >= BIG_BEGIN; i--) {
         unsigned long long cur = ((unsigned long long)remainder << 32) + big->bits[i];
-        big->bits[i] = (unsigned int)(cur / 10);
+        big->bits[i] = (unsigned)(cur / 10);
         remainder = cur % 10;
     }
     set_big_scale(big, get_big_scale(big) - 1);

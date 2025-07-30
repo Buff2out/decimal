@@ -386,6 +386,208 @@ START_TEST(test_compare_with_zero) {
 }
 END_TEST
 
+// Тест: 123 / 10 = 12, остаток 3, scale уменьшается
+START_TEST(test_divide_by_10_simple) {
+    // Число 12.3 → scale = 1
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 123, 0x00010000);
+    unsigned rem = divide_by_10(&num);
+
+    ck_assert_uint_eq(rem, 3);
+    ck_assert_uint_eq(num.bits[0], 12);
+    ck_assert_int_eq(get_big_scale(&num), 0); // 1 → 0
+}
+END_TEST
+
+// Тест: 100 / 10 = 10, остаток 0
+START_TEST(test_divide_by_10_exact) {
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 100, 0x00010000); // 10.0
+    unsigned rem = divide_by_10(&num);
+
+    ck_assert_uint_eq(rem, 0);
+    ck_assert_uint_eq(num.bits[0], 10);
+    ck_assert_int_eq(get_big_scale(&num), 0);
+}
+END_TEST
+
+// Тест: 1 / 10 = 0, остаток 1
+START_TEST(test_divide_by_10_small) {
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 1, 0x00010000); // 0.1
+    unsigned rem = divide_by_10(&num);
+
+    ck_assert_uint_eq(rem, 1);
+    ck_assert_uint_eq(num.bits[0], 0);
+    ck_assert_int_eq(get_big_scale(&num), 0);
+}
+END_TEST
+
+// Тест: 0 / 10 = 0, остаток 0
+START_TEST(test_divide_by_10_zero) {
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 0, 0x00010000); // 0.0
+    unsigned rem = divide_by_10(&num);
+
+    ck_assert_uint_eq(rem, 0);
+    ck_assert_uint_eq(num.bits[0], 0);
+    ck_assert_int_eq(get_big_scale(&num), 0);
+}
+END_TEST
+
+// Тест: 999 / 10 = 99, остаток 9
+START_TEST(test_divide_by_10_remainder_9) {
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 999, 0x00010000); // 99.9
+    unsigned rem = divide_by_10(&num);
+
+    ck_assert_uint_eq(rem, 9);
+    ck_assert_uint_eq(num.bits[0], 99);
+    ck_assert_int_eq(get_big_scale(&num), 0);
+}
+END_TEST
+
+// Тест: число больше 2^32
+START_TEST(test_divide_by_10_large) {
+    // 10^10 = 10000000000
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 2, 147483648, 0x00010000); // 1000000000.0
+    unsigned rem = divide_by_10(&num);
+
+    ck_assert_uint_eq(rem, 0);
+    // 10000000000 / 10 = 1000000000
+    ck_assert_uint_eq(num.bits[0], 147483648);
+    ck_assert_uint_eq(num.bits[1], 2);
+    ck_assert_int_eq(get_big_scale(&num), 0);
+}
+END_TEST
+
+// Тест: NULL указатель
+START_TEST(test_divide_by_10_null) {
+    unsigned rem = divide_by_10(NULL);
+    // Поведение не определено, но тест проверяет, что не падает
+    // В реальности: функция должна проверять NULL
+    // Пока просто проверим, что компилируется
+}
+END_TEST
+
+// Тест: масштаб 2 → 12.34 / 10 = 1.234, scale = 1
+START_TEST(test_divide_by_10_scale_2) {
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 1234, 0x00020000); // 12.34
+    unsigned rem = divide_by_10(&num);
+
+    ck_assert_uint_eq(rem, 4);
+    ck_assert_uint_eq(num.bits[0], 123);
+    ck_assert_int_eq(get_big_scale(&num), 1);
+}
+END_TEST
+
+// deepseek
+
+START_TEST(test_divide_by_10_simple_1) {
+    // 50 / 10 = 5 (остаток 0)
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 50, 0);
+    unsigned expected_remainder = 0;
+    s21_big_decimal expected_num = new_big_native(0, 0, 0, 0, 0, 0, 5, 0);
+    
+    unsigned remainder = divide_by_10(&num);
+    
+    ck_assert_uint_eq(remainder, expected_remainder);
+    assert_big_decimal_eq(num, expected_num);
+}
+END_TEST
+
+START_TEST(test_divide_by_10_with_remainder) {
+    // 123 / 10 = 12 (остаток 3)
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
+    unsigned expected_remainder = 3;
+    s21_big_decimal expected_num = new_big_native(0, 0, 0, 0, 0, 0, 12, 0);
+    
+    unsigned remainder = divide_by_10(&num);
+    
+    ck_assert_uint_eq(remainder, expected_remainder);
+    assert_big_decimal_eq(num, expected_num);
+}
+END_TEST
+
+START_TEST(test_divide_by_10_large_number) {
+    // 12345678901234567890 / 10 = 1234567890123456789 (остаток 0)
+    s21_big_decimal num = new_big_native(0, 0, 0xAB54A98C, 0x2DFDC1C0, 0, 0, 0x499602D2, 0);
+    unsigned expected_remainder = 2;
+    s21_big_decimal expected_num = new_big_native(0, 0, 0xAB54A98, 0xC2DFDC1C, 0, 0, 0x0499602D, 0);
+    
+    unsigned remainder = divide_by_10(&num);
+    printf("test_divide_by_10_large_number, num: \n");
+    print_big_native_hex(&num);
+
+    printf("test_divide_by_10_large_number, num: \n");
+    print_big_native_hex(&expected_num);
+    
+    ck_assert_uint_eq(remainder, expected_remainder);
+    assert_big_decimal_eq(num, expected_num);
+}
+END_TEST
+
+START_TEST(test_divide_by_10_max_uint32) {
+    // 4294967295 / 10 = 429496729 (остаток 5)
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 0xFFFFFFFF, 0);
+    unsigned expected_remainder = 5;
+    s21_big_decimal expected_num = new_big_native(0, 0, 0, 0, 0, 0, 0x19999999, 0);
+    
+    unsigned remainder = divide_by_10(&num);
+    
+    ck_assert_uint_eq(remainder, expected_remainder);
+    assert_big_decimal_eq(num, expected_num);
+}
+END_TEST
+
+START_TEST(test_divide_by_10_multiple_words) {
+    // 0x100000000 / 10 = 0x19999999 (остаток 6)
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 1, 0, 0);
+    unsigned expected_remainder = 6;
+    s21_big_decimal expected_num = new_big_native(0, 0, 0, 0, 0, 0, 0x19999999, 0);
+    
+    unsigned remainder = divide_by_10(&num);
+    
+    ck_assert_uint_eq(remainder, expected_remainder);
+    assert_big_decimal_eq(num, expected_num);
+}
+END_TEST
+
+START_TEST(test_divide_by_10_with_scale) {
+    // 123.4 (scale=1) / 10 = 12.34 (scale=0), но scale уменьшается на 1
+    s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 1234, 0x10000);
+    unsigned expected_remainder = 4;
+    s21_big_decimal expected_num = new_big_native(0, 0, 0, 0, 0, 0, 123, 0);
+    
+    unsigned remainder = divide_by_10(&num);
+    
+    ck_assert_uint_eq(remainder, expected_remainder);
+    assert_big_decimal_eq(num, expected_num);
+    ck_assert_uint_eq(get_big_scale(&num), 0);
+}
+END_TEST
+
+// Сборка тестов
+Suite *divide_by_10_suite(void) {
+    Suite *s = suite_create("divide_by_10");
+
+    TCase *tc_core = tcase_create("Core");
+    tcase_add_test(tc_core, test_divide_by_10_simple);
+    tcase_add_test(tc_core, test_divide_by_10_exact);
+    tcase_add_test(tc_core, test_divide_by_10_small);
+    tcase_add_test(tc_core, test_divide_by_10_zero);
+    tcase_add_test(tc_core, test_divide_by_10_remainder_9);
+    tcase_add_test(tc_core, test_divide_by_10_large);
+    tcase_add_test(tc_core, test_divide_by_10_null);
+    tcase_add_test(tc_core, test_divide_by_10_scale_2);
+
+    tcase_add_test(tc_core, test_divide_by_10_simple_1);
+    tcase_add_test(tc_core, test_divide_by_10_with_remainder);
+    tcase_add_test(tc_core, test_divide_by_10_large_number);
+    tcase_add_test(tc_core, test_divide_by_10_max_uint32);
+    tcase_add_test(tc_core, test_divide_by_10_multiple_words);
+    tcase_add_test(tc_core, test_divide_by_10_with_scale);
+
+
+    suite_add_tcase(s, tc_core);
+    return s;
+}
+
 Suite* compare_suite(void) {
     Suite *s = suite_create("Big Decimal Comparison");
     

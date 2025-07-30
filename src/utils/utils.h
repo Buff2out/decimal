@@ -10,6 +10,9 @@ s21_big_decimal from_bits(unsigned b0, unsigned b1, unsigned b2,
 s21_big_decimal from_bits_native(unsigned b6, unsigned b5, unsigned b4, unsigned b3, unsigned b2, unsigned b1, unsigned b0, unsigned b7);
 s21_decimal new_dec_native(unsigned b2, unsigned b1, unsigned b0, unsigned b3);
 s21_big_decimal new_big_native(unsigned b6, unsigned b5, unsigned b4, unsigned b3, unsigned b2, unsigned b1, unsigned b0, unsigned b7);
+s21_decimal new_dec_from_int(int val);
+s21_big_decimal new_big_from_int(int val);
+
 int is_zero(const s21_decimal* num);
 int is_big_zero(const s21_big_decimal* big);
 void reset_decimal(s21_decimal *num);
