@@ -32,6 +32,7 @@ int set_big_bit(s21_big_decimal *num, const unsigned val, const unsigned pos);
 s21_big_decimal shift_left(s21_big_decimal big, unsigned shift_value);
 void convert_to_big_decimal(const s21_decimal *num, s21_big_decimal *big);
 int to_big(const s21_decimal *num, s21_big_decimal *big);
+void copy_big(s21_big_decimal* from, s21_big_decimal* to);
 
 // void shift_left_to(s21_big_decimal * big, unsigned shift_value);
 int to_big(const s21_decimal *num, s21_big_decimal *big);

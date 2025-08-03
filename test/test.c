@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include "../test/test.h"
 
+
+// #include "../src/utils/utils.h"
+// #include "../src/operations.h"
+
 // Простая проверка двух big_decimal
 void assert_big_decimal_eq(s21_big_decimal a, s21_big_decimal b) {
     for (int i = 0; i < 8; i++) {
@@ -33,6 +37,7 @@ int main(void) {
     srunner_add_suite(runner, s21_is_less_suite());
     srunner_add_suite(runner, s21_is_not_equal_suite());
     srunner_add_suite(runner, divide_by_10_suite());
+    srunner_add_suite(runner, mul_suite());
 
     srunner_run_all(runner, CK_VERBOSE);
     int failed = srunner_ntests_failed(runner);

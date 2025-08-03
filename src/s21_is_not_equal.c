@@ -16,7 +16,7 @@ int s21_is_not_equal(s21_decimal num1, s21_decimal num2) {
     is_not_equal = 1;
   } else {
     int cmp = compare_big_decimal(&num1_big, &num2_big);
-    is_not_equal = cmp == 1 || cmp == - 1;
+    is_not_equal = cmp == 1 || cmp == -1;
   }
 
   return is_not_equal;

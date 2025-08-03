@@ -1,6 +1,6 @@
 CC = gcc
-# CFLAGS = -Wall -Wextra -Werror -g -std=c11
-CFLAGS = -g -std=c11
+CFLAGS = -Wall -Wextra -Werror -g -std=c11
+# CFLAGS = -g -std=c11
 TEST_FLAGS = -lcheck -lm -lpthread
 
 SRC = $(shell find src -type f -name '*.c')

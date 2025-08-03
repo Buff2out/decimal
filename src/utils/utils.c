@@ -289,16 +289,19 @@ int to_dec(s21_big_decimal *big, s21_decimal *num) {
 
 int to_dec_with_bank_round(s21_big_decimal *big, s21_decimal *num) {
   const int ok = 0;
-  const int null_big = 1;
-  const int overflow = 2;
+  const int null_big = 4;
+  const int plus_inf = 1;
+  const int minus_inf = 2;
+
+  const int inf_type = get_big_sign(big) ? minus_inf : plus_inf;
 
   int flag = ok;
   *num = (s21_decimal){0};
 
   if (!big) flag = null_big;
   else {
-    flag = fits_in_decimal(big) ? ok : overflow;
-    while (overflow == flag && get_big_scale(big)) {
+    flag = fits_in_decimal(big) ? ok : inf_type;
+    while (inf_type == flag && get_big_scale(big)) {
       int rem = num->bits[0] % 10;
       int carry = rem > 5; // если rem > 5, то true (carry = 1)
       if (5 == rem && 0 == carry) { // если нечётное число перед last цифрой,
@@ -309,7 +312,7 @@ int to_dec_with_bank_round(s21_big_decimal *big, s21_decimal *num) {
       s21_big_decimal temp_res = {0};
       s21_big_decimal temp_carry = new_big_from_int(carry);
       if (carry) add(big, &temp_carry, &temp_res);
-      flag = fits_in_decimal(big) ? ok : overflow;
+      flag = fits_in_decimal(big) ? ok : inf_type;
     }
     if (ok == flag) {
       for (int i = DEC_BEGIN; !flag && i <= DEC_END; ++i) { 

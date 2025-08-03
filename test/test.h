@@ -6,6 +6,8 @@
 #include "../test/test_utils.h"
 #include "../test/test_add.h"
 #include "../test/test_sub.h"
+#include "../test/test_mul.h"
+
 #include "../test/test_s21_is_equal.h"
 #include "../test/test_s21_is_greater_or_equal.h"
 #include "../test/test_s21_is_greater.h"

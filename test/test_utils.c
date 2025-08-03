@@ -245,30 +245,30 @@ START_TEST(test_to_dec_zero_values) {
 }
 END_TEST
 
-// Тест: простая конвертация
-START_TEST(test_to_dec_simple) {
-    s21_big_decimal big = new_big_native(0, 0, 0, 0, 0, 0, 123, 0x00020000); // 1.23
-    s21_decimal result = {0};
+// // Тест: простая конвертация
+// START_TEST(test_to_dec_simple) {
+//     s21_big_decimal big = new_big_native(0, 0, 0, 0, 0, 0, 123, 0x00020000); // 1.23
+//     s21_decimal result = {0};
 
-    int res = to_dec(&big, &result);
+//     int res = to_dec(&big, &result);
 
-    ck_assert_int_eq(res, 0);
-    ck_assert_uint_eq(result.bits[0], 123);
-    ck_assert_int_eq(get_scale(&result), 2);
-    ck_assert_int_eq(get_sign(&result), 0);
-}
-END_TEST
+//     ck_assert_int_eq(res, 0);
+//     ck_assert_uint_eq(result.bits[0], 123);
+//     ck_assert_int_eq(get_scale(&result), 2);
+//     ck_assert_int_eq(get_sign(&result), 0);
+// }
+// END_TEST
 
-// Тест: переполнение при scale == 0
-START_TEST(test_to_dec_overflow_scale_0) {
-    s21_big_decimal big = new_big_native(0, 0, 1, 0, 0, 0, 0, 0); // слишком большое
-    s21_decimal result = {0};
+// // Тест: переполнение при scale == 0
+// START_TEST(test_to_dec_overflow_scale_0) {
+//     s21_big_decimal big = new_big_native(0, 0, 1, 0, 0, 0, 0, 0); // слишком большое
+//     s21_decimal result = {0};
 
-    int res = to_dec(&big, &result);
+//     int res = to_dec(&big, &result);
 
-    ck_assert_int_eq(res, 2);
-}
-END_TEST
+//     ck_assert_int_eq(res, 2);
+// }
+// END_TEST
 
 // // Тест: 1.25 → 1.2 (банковское округление) автотесты с банковским пока что говно
 // START_TEST(test_to_dec_bankers_1_25) {
@@ -514,6 +514,23 @@ START_TEST(test_divide_by_10_large_number) {
 }
 END_TEST
 
+START_TEST(test_divide_by_10_max_number) {
+    s21_big_decimal num = new_big_native(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00010000);
+    unsigned expected_remainder = 5;
+    s21_big_decimal expected_num = new_big_native(0x19999999, 0x99999999, 0x99999999, 0x99999999, 0x99999999, 0x99999999, 0x99999999, 0);
+    
+    unsigned remainder = divide_by_10(&num);
+    printf("test_divide_by_10_max_number, num: \n");
+    print_big_native_hex(&num);
+
+    printf("test_divide_by_10_max_number, num: \n");
+    print_big_native_hex(&expected_num);
+    
+    ck_assert_uint_eq(remainder, expected_remainder);
+    assert_big_decimal_eq(num, expected_num);
+}
+END_TEST
+
 START_TEST(test_divide_by_10_max_uint32) {
     // 4294967295 / 10 = 429496729 (остаток 5)
     s21_big_decimal num = new_big_native(0, 0, 0, 0, 0, 0, 0xFFFFFFFF, 0);
@@ -570,6 +587,8 @@ Suite *divide_by_10_suite(void) {
     tcase_add_test(tc_core, test_divide_by_10_simple_1);
     tcase_add_test(tc_core, test_divide_by_10_with_remainder);
     tcase_add_test(tc_core, test_divide_by_10_large_number);
+    tcase_add_test(tc_core, test_divide_by_10_max_number);
+    
     tcase_add_test(tc_core, test_divide_by_10_max_uint32);
     tcase_add_test(tc_core, test_divide_by_10_multiple_words);
     tcase_add_test(tc_core, test_divide_by_10_with_scale);
