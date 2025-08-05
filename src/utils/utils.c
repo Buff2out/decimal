@@ -167,7 +167,7 @@ int set_scale(s21_decimal *num, const unsigned scale_value) {
 
 int set_big_scale(s21_big_decimal *big, const unsigned scale_value) {
   int is_err = FALSE;
-  if (28 < scale_value || !big) is_err = TRUE;
+  if (!big) is_err = TRUE;
   else {
     big->bits[BIG_METAINFO] = (big->bits[BIG_METAINFO] & 0xFF00FFFF) | (scale_value << 16);
   }
@@ -224,11 +224,22 @@ s21_big_decimal shift_left(s21_big_decimal big, unsigned shift_value) {
 // void shift_left_to(s21_big_decimal * big, unsigned shift_value) {
 //   unsigned memory = 0;
 //   if (31 < shift_value) shift_value = 31;
-//   for (unsigned i = BIG_BEGIN; i <= BIG_END; ++i) { // (int)(sizeof(s21_big_decimal) / sizeof(unsigned) - 1
+//   for (unsigned i = BIG_BEGIN; i <= BIG_END; ++i) {
 //     unsigned temp = big->bits[i];
 //     big->bits[i] <<= shift_value;
 //     big->bits[i] |= memory;
 //     memory = temp >> (32 - shift_value);
+//   }
+// }
+
+// void shift_right_to(s21_big_decimal * big, unsigned shift_value) {
+//   unsigned memory = 0;
+//   if (31 < shift_value) shift_value = 31;
+//   for (int i = BIG_END; i >= BIG_BEGIN; --i) {
+//     unsigned temp = big->bits[i];
+//     big->bits[i] >>= shift_value;
+//     big->bits[i] |= memory;
+//     memory = temp << (32 - shift_value);
 //   }
 // }
 

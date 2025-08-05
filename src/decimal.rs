@@ -13,17 +13,14 @@ impl Dec {
         Self { bits: [0; 4] }
     }
 
-    // Проверяем, является ли число нулём
     pub fn is_zero(&self) -> bool {
         self.bits[0] == 0 && self.bits[1] == 0 && self.bits[Self::BEGIN] == 0
     }
 
-    // Получаем знак числа (true — отрицательное)
     pub fn get_sign(&self) -> bool {
         ((1_u32 << 31) & self.bits[Self::METAINFO]) != 0
     }
 
-    // Получаем масштаб (scale)
     pub fn get_scale(&self) -> u32 {
         (self.bits[Self::METAINFO] >> 16) & 0xFF
     }
