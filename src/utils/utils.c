@@ -221,27 +221,27 @@ s21_big_decimal shift_left(s21_big_decimal big, unsigned shift_value) {
   return big;
 }
 
-// void shift_left_to(s21_big_decimal * big, unsigned shift_value) {
-//   unsigned memory = 0;
-//   if (31 < shift_value) shift_value = 31;
-//   for (unsigned i = BIG_BEGIN; i <= BIG_END; ++i) {
-//     unsigned temp = big->bits[i];
-//     big->bits[i] <<= shift_value;
-//     big->bits[i] |= memory;
-//     memory = temp >> (32 - shift_value);
-//   }
-// }
+void shift_left_to(s21_big_decimal * big, unsigned shift_value) {
+  unsigned memory = 0;
+  if (31 < shift_value) shift_value = 31;
+  for (unsigned i = BIG_BEGIN; i <= BIG_END; ++i) {
+    unsigned temp = big->bits[i];
+    big->bits[i] <<= shift_value;
+    big->bits[i] |= memory;
+    memory = temp >> (32 - shift_value);
+  }
+}
 
-// void shift_right_to(s21_big_decimal * big, unsigned shift_value) {
-//   unsigned memory = 0;
-//   if (31 < shift_value) shift_value = 31;
-//   for (int i = BIG_END; i >= BIG_BEGIN; --i) {
-//     unsigned temp = big->bits[i];
-//     big->bits[i] >>= shift_value;
-//     big->bits[i] |= memory;
-//     memory = temp << (32 - shift_value);
-//   }
-// }
+void shift_right_to(s21_big_decimal * big, unsigned shift_value) {
+  unsigned memory = 0;
+  if (31 < shift_value) shift_value = 31;
+  for (int i = BIG_END; i >= BIG_BEGIN; --i) {
+    unsigned temp = big->bits[i];
+    big->bits[i] >>= shift_value;
+    big->bits[i] |= memory;
+    memory = temp << (32 - shift_value);
+  }
+}
 
 // warning num, big null pointer. 
 // legacy function
