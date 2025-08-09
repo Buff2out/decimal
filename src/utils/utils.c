@@ -46,12 +46,12 @@ s21_big_decimal from_bits_native(unsigned b6, unsigned b5, unsigned b4,
     return result;
 }
 
-// void copy_dec(s21_decimal* from, s21_decimal* to) {
-//   to->bits[0] = from->bits[0];
-//   to->bits[1] = from->bits[1];
-//   to->bits[2] = from->bits[2];
-//   to->bits[3] = from->bits[3];
-// }
+void copy_dec(s21_decimal* from, s21_decimal* to) {
+  to->bits[0] = from->bits[0];
+  to->bits[1] = from->bits[1];
+  to->bits[2] = from->bits[2];
+  to->bits[3] = from->bits[3];
+}
 
 void copy_big(s21_big_decimal* from, s21_big_decimal* to) {
   to->bits[0] = from->bits[0];
@@ -419,6 +419,64 @@ void multiply_by_10(s21_big_decimal *big) {
   }
 
   set_big_scale(big, get_big_scale(big) + 1);
+}
+
+int normalize_scales_decimal(s21_decimal *num1, s21_decimal *num2) {
+    int scale1 = get_scale(num1);
+    int scale2 = get_scale(num2);
+
+    // Увеличиваем масштаб num1, пока не сравняется с num2
+    while (scale1 < scale2) {
+        if (multiply_by_10_decimal(num1) != 0) {
+            return 1; // Ошибка: переполнение при нормализации
+        }
+        scale1 = get_scale(num1);
+    }
+
+    // Увеличиваем масштаб num2, пока не сравняется с num1
+    while (scale2 < scale1) {
+        if (multiply_by_10_decimal(num2) != 0) {
+            return 1; // Ошибка: переполнение при нормализации
+        }
+        scale2 = get_scale(num2);
+    }
+
+    return 0;
+}
+
+int multiply_by_10_decimal(s21_decimal *dec) {
+    // Проверяем, можно ли увеличить scale
+    int scale = get_scale(dec);
+    if (scale >= 28) {
+        return 1; // Ошибка: масштаб не может быть больше 28
+    }
+
+    unsigned long long carry = 0;
+    unsigned long long temp;
+
+    // Умножаем bits[0] на 10
+    temp = (unsigned long long)dec->bits[0] * 10 + carry;
+    dec->bits[0] = (unsigned int)(temp & 0xFFFFFFFF);
+    carry = temp >> 32;
+
+    // Умножаем bits[1] на 10
+    temp = (unsigned long long)dec->bits[1] * 10 + carry;
+    dec->bits[1] = (unsigned int)(temp & 0xFFFFFFFF);
+    carry = temp >> 32;
+
+    // Умножаем bits[2] на 10
+    temp = (unsigned long long)dec->bits[2] * 10 + carry;
+    dec->bits[2] = (unsigned int)(temp & 0xFFFFFFFF);
+    carry = temp >> 32;
+
+    // Проверяем переполнение
+    if (carry != 0) {
+        return 1; // Переполнение мантиссы
+    }
+
+    // Увеличиваем масштаб
+    set_scale(dec, scale + 1);
+    return 0;
 }
 
 unsigned divide_by_10(s21_big_decimal *big) {

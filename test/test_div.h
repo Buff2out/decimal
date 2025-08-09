@@ -1,11 +1,11 @@
-// test/test_add.h
-#ifndef TEST_ADD_H
-#define TEST_ADD_H
+// test/test_div.h
+#ifndef TEST_DIV_H
+#define TEST_DIV_H
 
 #include "../src/operations.h"
 #include "../src/utils/utils.h"
 #include "../test/test.h"
 
-Suite* add_suite(void);
+Suite* s21_div_suite(void);
 
 #endif

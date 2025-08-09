@@ -1,6 +1,5 @@
 // test/test.c
 #include <check.h>
-#include <stdlib.h>
 #include "../test/test.h"
 
 
@@ -38,6 +37,7 @@ int main(void) {
     srunner_add_suite(runner, s21_is_not_equal_suite());
     srunner_add_suite(runner, divide_by_10_suite());
     srunner_add_suite(runner, mul_suite());
+    srunner_add_suite(runner, s21_div_suite());
 
     srunner_run_all(runner, CK_VERBOSE);
     int failed = srunner_ntests_failed(runner);

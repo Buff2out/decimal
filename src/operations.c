@@ -195,109 +195,108 @@ int s21_mul(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
   return flag;
 }
 
-
-// Vibe coded
 int s21_div(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
-    if (!result) return 2;
-    if (is_zero(&value_2)) return 3; // деление на ноль
-    reset_decimal(result);
-
-    s21_big_decimal a = {0}, b = {0};
-    to_big(&value_1, &a);
-    to_big(&value_2, &b);
-
-    int a_sign = get_big_sign(&a);
-    int b_sign = get_big_sign(&b);
-    int result_sign = a_sign ^ b_sign;
-
-    int a_scale = get_big_scale(&a);
-    int b_scale = get_big_scale(&b);
-
-    /*
-      Деление: 
-      у нас есть 
-      a/b = c + rem/b
-    */
-    s21_big_decimal a_copy = {0};
-    copy_big(&a, &a_copy);
-    s21_big_decimal b_copy = {0};
-    copy_big(&b, &b_copy);
-    int a_copy_scale = get_big_scale(&a);
-
-    unsigned power_b = 0; // степень двойки которую мы прибавляем каждый раз как домножаем
-    s21_big_decimal right = {0};
-    s21_big_decimal roof = new_big_native(4189374BC6A7EF9DB22D0E56041893, unsigned int b5, unsigned int b4, unsigned int b3, 0x74BC6A7E, 0xF9DB22D0, 0xE5604189, 0)
-
-    while () {
-
-    }
-
-    
-
-    copy_big(&a, &right); // результат умножения делителя на два в степени power_b
-    shift_left_to(&right, 31);
-    int compare_res = compare_big_decimal(&a_copy, &b_copy);
-    while (compare_res == -1) {
-      shift_left_to(&right, 1); // сдвиг - то же самое что и умножение на 2
-      ++power_b; // инкрементируем степень
-      compare_res = compare_big_decimal(&a, &b);
-    }
-    /*
-      unsigned long long power_b = 1; // возможно не нужно
-
-      a * 10 и каждый раз как в цикле умножаем на 10, Прибавляем scale (как только overflow, stop)
-      после этого
-
-      right = b_copy * right;
-
-
-
-      итак после всего этого мы определили границы того в каких пределах домножаемого находится число
-      например это будет между 2^35 и 2^36
-      теперь нам нужно уточнять множитель. Будем уточнять его через ту же степень двойки. 
-      Мы знаем гарантированно что right гарантированно будет делиться на два. 
-      Всё что нам надо делать это прибавлять к результату примерно так
-      s21_big_decimal added = {0};
-
-      здесь мы должны понять насколько меньшее число в диапазоне от 2^35 и 2^36 мы должны прибавить, 
-      чтобы получить
-      while (res >= 0) {
-        copy_big(right, added);
-        shift_right_to(&added);
-
+    int flag = OK;
+  // не забыть обработку краевого когда делимое или делитель равны нулю!!!!!
+    if (!result) {
+      flag = ERROR;
+    } else if (is_zero(&value_2)) { 
+      flag = DIV_BY_ZERO;
+    } else if (is_zero(&value_1)) {
+      s21_decimal res = new_dec_from_int(0);
+      copy_dec(&res, result);
+    } else {
+      reset_decimal(result);
+  
+      s21_big_decimal a = {0}, b = {0};
+      to_big(&value_1, &a);
+      to_big(&value_2, &b);
+  
+      int a_sign = get_big_sign(&a);
+      int b_sign = get_big_sign(&b);
+      int result_sign = a_sign ^ b_sign;
+  
+      // int a_scale = get_big_scale(&a);
+      // int b_scale = get_big_scale(&b);
+  
+      s21_big_decimal a_copy = {0};
+      copy_big(&a, &a_copy);
+      s21_big_decimal b_copy = {0};
+      copy_big(&b, &b_copy);
+  
+      unsigned power_b = 0; // степень двойки которую мы прибавляем каждый раз как домножаем
+      s21_big_decimal right = {0};
+      s21_big_decimal roof = new_big_native(0x418937, 0x4BC6A7EF, 0x9DB22D0E, 0x56041893, 0x74BC6A7E, 0xF9DB22D0, 0xE5604189, 0);
+  
+      // умножаем делимое кучу раз на 10 пока оно не станет достаточно большим
+      int scale_borrowed = get_big_scale(&a_copy);
+      while (-1 == compare_big_decimal(&a_copy, &roof)) {
+        multiply_by_10(&a_copy);
+        ++scale_borrowed;
       }
+  
+      copy_big(&b, &right);
+      
+      shift_left_to(&right, 31);
+      shift_left_to(&right, 31);
+      shift_left_to(&right, 31); // чтобы сэкономить время
+      power_b = 93;
+      // не путать shift_left и left! Первое - умножение, а второе про интервал
+      // понимаем что res это что то вроде
+      // 2^191 + 2^190 + 2^187 + 2^185 + ... + 2^3 + 2^0 - это и есть то самое частное
+      s21_big_decimal res = new_big_from_int(1);
+      set_big_scale(&res, scale_borrowed);
+      shift_left_to(&res, 31);
+      shift_left_to(&res, 31);
+      shift_left_to(&res, 31);
+      while (-1 == compare_big_decimal(&right, &a_copy)) {  
+        shift_left_to(&right, 1); // сдвиг - то же самое что и умножение на 2
+        shift_left_to(&res, 1);
+        ++power_b; // инкрементируем степень
+      }
+      s21_big_decimal second = {0};
+      shift_right_to(&res, 1);
+      copy_big(&res, &second);
+      --power_b;
+      s21_big_decimal left = {0};
+      copy_big(&right, &left);
+      shift_right_to(&left, 1); // уменьшаем лево 
+      // итого получаем что наше частное находится в интервале между left и right
 
-    */
-    if (power > 0) {
-        shift_right_to(&b_power, 1); // возвращаемся к последнему, где b_power <= remainder
-        power--;
-    }
-
-    // Теперь: b * 2^power <= remainder < b * 2^(power+1)
-    // Вычитаем и добавляем 2^power к частному
-    while (power >= 0) {
-        if (compare_big_decimal(&b_power, &remainder) <= 0) {
-            sub(&remainder, &b_power, &remainder);
-            // Добавляем 2^power к частному
-            s21_big_decimal two_power = new_big_from_int(1);
-            shift_left_to(&two_power, power);
-            add(&quotient, &two_power, &quotient);
+      s21_big_decimal added = {0};
+      s21_big_decimal middle = {0};
+      copy_big(&left, &added);
+      copy_big(&left, &middle);
+      // TODO
+      int stop_flag = 0;
+      while (!stop_flag && power_b != 0) {
+        shift_right_to(&second, 1);
+        shift_right_to(&added, 1);
+        --power_b;
+        // вооот. Ниже цикл в котором мы берём половину и замеряем. Наше частное слева или справа.
+        // ниже как раз мы и будем присваивать то right то left уточняя диапазон.
+        add(&left, &added, &middle);
+        int cmpres = compare_big_decimal(&middle, &a_copy);
+        // если правый всё ещё больше, то мы недостаточно прибавили, двигаем левый
+        if (-1 == cmpres) {
+          copy_big(&middle, &left);
+          s21_big_decimal temp = {0};
+          add(&res, &second, &temp);
+          copy_big(&temp, &res);
+        } else if (0 == cmpres) {
+          stop_flag = 1;
         }
-        shift_right_to(&b_power, 1);
-        power--;
+      }
+      // if (stop_flag == 0) { // если разница оказалась равна нулю. То есть c остатком.
+      //   s21_big_decimal rem = {0};
+      //   sub(&a_copy, &middle, &rem);
+      // }
+      // TODO понять как скейл с делимого адаптировать под result.
+      // наверное мы просто прибавим скейл от a_copy к middle
+      set_big_sign(&res, result_sign);
+      to_dec_with_bank_round(&res, result);
     }
-
-    // Устанавливаем scale и знак
-    set_big_scale(&quotient, result_scale);
-    set_big_sign(&quotient, result_sign);
-
-    // Если scale > 28 — округляем
-    while (get_big_scale(&quotient) > 28) {
-        bank_round(&quotient);
-    }
-
-    // Конвертируем обратно
-    return to_dec(&quotient, result);
+    return flag;
 }
 
 
